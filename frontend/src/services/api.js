@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const resolvedBaseUrl =
+  import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:8000";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  baseURL: resolvedBaseUrl,
   timeout: 10000,
 });
 
@@ -32,6 +35,8 @@ export const getHistory = (page = 1, limit = 20, filter = "", source = "") =>
   });
 
 export const getStats = () => api.get("/stats");
+
+export const getHealth = () => api.get("/health");
 
 export const deleteRecord = (id) => api.delete(`/history/${id}`);
 

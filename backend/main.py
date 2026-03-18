@@ -3,13 +3,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database.database import Base, engine
+from database.database import Base, SessionLocal, engine
 from routes import history, scan, stats
+from services.demo_seed import seed_demo_data_if_empty
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_demo_data_if_empty(db)
+    finally:
+        db.close()
     yield
 
 

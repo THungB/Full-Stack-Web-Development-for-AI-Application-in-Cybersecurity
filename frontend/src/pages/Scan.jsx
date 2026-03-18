@@ -1,8 +1,10 @@
 import { useState } from "react";
+import InsightStrip from "../components/InsightStrip";
 import OcrScanner from "../components/OcrScanner";
 import ResultCard from "../components/ResultCard";
 import ScanForm from "../components/ScanForm";
 import SectionHeading from "../components/SectionHeading";
+import SystemStatus from "../components/SystemStatus";
 import { useToast } from "../components/ToastProvider";
 import { scanMessage } from "../services/api";
 
@@ -74,6 +76,38 @@ export default function Scan() {
         />
       </section>
 
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <SystemStatus />
+        <InsightStrip
+          items={[
+            {
+              label: "Validation",
+              value: "10-2000",
+              description:
+                "Manual input enforces trimmed text with a minimum and maximum character boundary.",
+            },
+            {
+              label: "OCR Inputs",
+              value: "PNG/JPG/WebP",
+              description:
+                "Screenshots can be uploaded directly or captured live from the current screen.",
+            },
+            {
+              label: "Feedback",
+              value: "Toast + Card",
+              description:
+                "Successful scans immediately appear in the result card with confidence and keywords.",
+            },
+            {
+              label: "Source Tag",
+              value: activeTab.toUpperCase(),
+              description:
+                "The workflow preserves whether the message came from text input or OCR scan.",
+            },
+          ]}
+        />
+      </div>
+
       <section className="panel p-4 sm:p-5">
         <div className="flex flex-wrap gap-3">
           {tabs.map((tab) => (
@@ -99,7 +133,18 @@ export default function Scan() {
         <OcrScanner onResult={handleOcrResult} onError={handleOcrError} />
       )}
 
-      <ResultCard result={result} />
+      {result ? (
+        <ResultCard result={result} />
+      ) : (
+        <section className="panel p-6 sm:p-8">
+          <p className="section-kicker">Result Preview</p>
+          <h3 className="mt-4 text-2xl font-bold">No scan result yet</h3>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-steel">
+            Submit a suspicious message or upload a screenshot to see the
+            confidence score, source label, and highlighted keywords here.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default function SectionHeading({ eyebrow, title, description, action }) 
           <p className="mt-3 text-base leading-7 text-steel">{description}</p>
         ) : null}
       </div>
-      {action ? <div>{action}</div> : null}
+      {action ? <div className="w-full md:w-auto">{action}</div> : null}
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function ScanForm({ onSubmit }) {
   return (
     <form className="soft-panel p-5 sm:p-6" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
               Manual Scan
@@ -52,6 +52,12 @@ export default function ScanForm({ onSubmit }) {
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-steel">
             {message.length} / {MAX_LENGTH}
           </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="chip bg-white text-steel">Trim whitespace</span>
+          <span className="chip bg-white text-steel">Min 10 chars</span>
+          <span className="chip bg-white text-steel">Max 2000 chars</span>
         </div>
 
         <label className="sr-only" htmlFor="message">
@@ -79,7 +85,7 @@ export default function ScanForm({ onSubmit }) {
           </div>
           <button
             type="submit"
-            className="btn-primary min-w-[180px]"
+            className="btn-primary min-w-[180px] w-full sm:w-auto"
             disabled={loading || Boolean(error) || !message.trim()}
           >
             {loading ? "Scanning..." : "Scan Message"}

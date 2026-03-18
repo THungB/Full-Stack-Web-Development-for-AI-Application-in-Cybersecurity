@@ -27,7 +27,55 @@ export default function HistoryTable({ records, onDelete }) {
 
   return (
     <div className="panel overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="grid gap-4 p-4 md:hidden">
+        {records.map((record) => {
+          const expanded = expandedRows[record.id];
+          const message = record.message || record.extracted_text || "";
+
+          return (
+            <article
+              key={record.id}
+              className="rounded-[24px] border border-ink/10 bg-white p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="chip bg-ink/10 text-ink">
+                  {(record.source || "website").toUpperCase()}
+                </span>
+                <StatusBadge value={record.result} />
+              </div>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-steel">
+                {formatDateTime(record.timestamp)}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-ink">
+                {expanded ? message : truncateText(message, 140)}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="chip bg-[#faf6ed] text-ink">
+                  Confidence {formatConfidence(record.confidence)}
+                </span>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(record.id)}
+                  className="btn-secondary flex-1 px-4 py-2"
+                >
+                  {expanded ? "Show less" : "Expand"}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-danger/20 px-4 py-2 text-xs font-semibold text-danger transition hover:bg-danger/10"
+                  onClick={() => onDelete(record.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="bg-[#faf6ed] text-left">

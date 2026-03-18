@@ -21,6 +21,14 @@ If you already have a trained model from Assignment 2, place it in one of these 
 
 The server will load it automatically at startup. If no model file is found, the API still runs using a keyword-based fallback predictor so the frontend can be tested end-to-end.
 
+## Demo seed
+
+If the database is empty, the backend seeds demo records automatically on startup so the dashboard and history page look populated on first launch.
+
+Set `APP_SEED_DEMO=false` if you want to disable this behavior.
+
+You can also point the backend to a different SQLite file with `DATABASE_URL`.
+
 ## OCR note
 
 Install the Tesseract engine on your machine separately, then keep `pytesseract` in Python dependencies:

@@ -39,7 +39,7 @@ export default function ResultCard({ result }) {
           </p>
         </div>
 
-        <div className="rounded-[24px] bg-[#faf6ed] px-5 py-4 text-sm text-steel">
+        <div className="rounded-[24px] bg-[#faf6ed] px-5 py-4 text-sm text-steel lg:min-w-[180px]">
           <p className="font-semibold text-ink">Record ID</p>
           <p className="mt-1 text-lg font-bold text-ink">{result.id ?? "Pending"}</p>
         </div>
@@ -50,7 +50,7 @@ export default function ResultCard({ result }) {
           <p className="text-sm font-semibold text-ink">
             {result.extracted_text ? "Extracted message" : "Message preview"}
           </p>
-          <div className="mt-4 rounded-[20px] bg-white p-4 text-sm leading-7 text-ink">
+          <div className="mt-4 max-h-[360px] overflow-auto rounded-[20px] bg-white p-4 text-sm leading-7 text-ink break-words">
             {highlightKeywords(
               result.extracted_text || result.message || "",
               keywords,

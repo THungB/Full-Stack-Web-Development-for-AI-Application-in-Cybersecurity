@@ -106,11 +106,11 @@ export default function OcrScanner({ onResult, onError }) {
               text to the spam detector.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
               disabled={loading}
             >
               Upload Image
@@ -118,12 +118,18 @@ export default function OcrScanner({ onResult, onError }) {
             <button
               type="button"
               onClick={handleScreenCapture}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
               disabled={loading}
             >
               Capture Screen
             </button>
           </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="chip bg-white text-steel">PNG / JPG / WebP</span>
+          <span className="chip bg-white text-steel">Max 5MB</span>
+          <span className="chip bg-white text-steel">Live screen capture</span>
         </div>
 
         <input
@@ -137,7 +143,7 @@ export default function OcrScanner({ onResult, onError }) {
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[24px] border border-dashed border-ink/12 bg-white/60 p-4">
             <p className="text-sm font-semibold text-ink">Image preview</p>
-            <div className="mt-4 flex min-h-[240px] items-center justify-center overflow-hidden rounded-[20px] bg-[#f2efe7]">
+            <div className="mt-4 flex min-h-[200px] items-center justify-center overflow-hidden rounded-[20px] bg-[#f2efe7] sm:min-h-[240px]">
               {preview ? (
                 <img
                   src={preview}
@@ -155,7 +161,7 @@ export default function OcrScanner({ onResult, onError }) {
 
           <div className="rounded-[24px] border border-ink/10 bg-white p-4">
             <p className="text-sm font-semibold text-ink">OCR extraction</p>
-            <div className="mt-4 min-h-[240px] rounded-[20px] bg-[#faf6ed] p-4">
+            <div className="mt-4 min-h-[200px] rounded-[20px] bg-[#faf6ed] p-4 sm:min-h-[240px]">
               {loading ? (
                 <p className="text-sm font-medium text-signal">
                   Extracting text and scanning image...

@@ -1,6 +1,8 @@
 import { startTransition, useEffect, useState } from "react";
 import HistoryTable from "../components/HistoryTable";
+import InsightStrip from "../components/InsightStrip";
 import SectionHeading from "../components/SectionHeading";
+import SystemStatus from "../components/SystemStatus";
 import { useToast } from "../components/ToastProvider";
 import { deleteRecord, getHistory } from "../services/api";
 
@@ -98,6 +100,8 @@ export default function History() {
   });
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const spamCount = sortedRecords.filter((record) => record.result === "spam").length;
+  const hamCount = sortedRecords.filter((record) => record.result === "ham").length;
 
   const handleDelete = async (id) => {
     try {
@@ -139,6 +143,34 @@ export default function History() {
           }
         />
       </section>
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <SystemStatus />
+        <InsightStrip
+          items={[
+            {
+              label: "Current Page",
+              value: page,
+              description: "Keeps the current paginated slice of scan records in view.",
+            },
+            {
+              label: "Visible Spam",
+              value: spamCount,
+              description: "Spam results currently visible after active filters and sorting.",
+            },
+            {
+              label: "Visible Ham",
+              value: hamCount,
+              description: "Benign results currently visible after active filters and sorting.",
+            },
+            {
+              label: "CSV Ready",
+              value: sortedRecords.length ? "Yes" : "No",
+              description: "Export only includes the records currently rendered in the table.",
+            },
+          ]}
+        />
+      </div>
 
       <section className="panel p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
