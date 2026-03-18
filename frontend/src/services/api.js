@@ -24,6 +24,21 @@ export const scanOcr = (formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+export const scanBatch = ({
+  file,
+  storeResults = false,
+  defaultSource = "batch",
+}) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("store_results", String(storeResults));
+  formData.append("default_source", defaultSource);
+
+  return api.post("/scan/batch", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
 export const getHistory = (page = 1, limit = 20, filter = "", source = "") =>
   api.get("/history", {
     params: {

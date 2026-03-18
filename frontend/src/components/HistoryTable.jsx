@@ -19,7 +19,7 @@ export default function HistoryTable({ records, onDelete }) {
         <h3 className="text-2xl font-bold">No scan history yet</h3>
         <p className="mt-3 text-sm text-steel">
           Once the backend starts storing results, your website, OCR, Telegram,
-          and extension scans will appear here.
+          extension, and batch scans will appear here.
         </p>
       </div>
     );

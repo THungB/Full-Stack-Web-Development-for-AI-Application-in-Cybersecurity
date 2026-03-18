@@ -1,4 +1,5 @@
 import { useState } from "react";
+import BatchTester from "../components/BatchTester";
 import InsightStrip from "../components/InsightStrip";
 import OcrScanner from "../components/OcrScanner";
 import ResultCard from "../components/ResultCard";
@@ -11,6 +12,7 @@ import { scanMessage } from "../services/api";
 const tabs = [
   { key: "text", label: "Text Input" },
   { key: "ocr", label: "OCR Scanner" },
+  { key: "batch", label: "Batch Test" },
 ];
 
 export default function Scan() {
@@ -71,8 +73,8 @@ export default function Scan() {
       <section className="panel overflow-hidden p-6 sm:p-8">
         <SectionHeading
           eyebrow="Scan Workspace"
-          title="Inspect suspicious messages from text or screenshots"
-          description="Switch between manual message input and OCR capture. The result card below highlights confidence, source, and suspicious keywords."
+          title="Inspect suspicious messages from text, screenshots, or batch CSVs"
+          description="Switch between manual input, OCR capture, and batch testing. Single scans show an instant result card, while batch runs return per-row predictions and evaluation metrics."
         />
       </section>
 
@@ -93,16 +95,16 @@ export default function Scan() {
                 "Screenshots can be uploaded directly or captured live from the current screen.",
             },
             {
-              label: "Feedback",
-              value: "Toast + Card",
+              label: "Batch Format",
+              value: "CSV",
               description:
-                "Successful scans immediately appear in the result card with confidence and keywords.",
+                "Upload a file with a required message column and optional expected labels for accuracy scoring.",
             },
             {
-              label: "Source Tag",
-              value: activeTab.toUpperCase(),
+              label: "Feedback",
+              value: activeTab === "batch" ? "Toast + Table" : "Toast + Card",
               description:
-                "The workflow preserves whether the message came from text input or OCR scan.",
+                "Successful scans appear immediately in a result card or batch results table with confidence and keywords.",
             },
           ]}
         />
@@ -129,13 +131,32 @@ export default function Scan() {
 
       {activeTab === "text" ? (
         <ScanForm onSubmit={handleManualScan} />
-      ) : (
+      ) : activeTab === "ocr" ? (
         <OcrScanner onResult={handleOcrResult} onError={handleOcrError} />
+      ) : (
+        <BatchTester
+          onSuccess={(data) => {
+            showToast({
+              tone: "success",
+              title: "Batch test completed",
+              description: `${data.summary.processed} rows processed, ${data.summary.failed} failed.`,
+            });
+          }}
+          onError={(error) => {
+            const message =
+              error.response?.data?.detail || error.message || "Batch test failed.";
+            showToast({
+              tone: "error",
+              title: "Batch test failed",
+              description: message,
+            });
+          }}
+        />
       )}
 
-      {result ? (
+      {activeTab !== "batch" && result ? (
         <ResultCard result={result} />
-      ) : (
+      ) : activeTab !== "batch" ? (
         <section className="panel p-6 sm:p-8">
           <p className="section-kicker">Result Preview</p>
           <h3 className="mt-4 text-2xl font-bold">No scan result yet</h3>
@@ -144,7 +165,7 @@ export default function Scan() {
             confidence score, source label, and highlighted keywords here.
           </p>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

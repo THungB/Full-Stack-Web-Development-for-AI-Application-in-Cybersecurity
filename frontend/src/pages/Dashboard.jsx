@@ -91,9 +91,9 @@ export default function Dashboard() {
         items={[
           {
             label: "Live Sources",
-            value: 4,
+            value: 5,
             description:
-              "Website, Telegram, browser extension, and OCR routes are represented in the UI.",
+              "Website, Telegram, browser extension, OCR, and batch routes are represented in the UI.",
           },
           {
             label: "Refresh Pattern",

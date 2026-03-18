@@ -18,8 +18,8 @@ export default function Navbar() {
           <div className="mt-2">
             <h1 className="text-xl font-bold sm:text-2xl">Cybersecurity Console</h1>
             <p className="mt-1 text-sm text-steel">
-              Monitor scans from website, OCR, Telegram, and browser extension
-              in one place.
+              Monitor scans from website, OCR, Telegram, browser extension, and
+              batch CSV testing in one place.
             </p>
           </div>
         </div>

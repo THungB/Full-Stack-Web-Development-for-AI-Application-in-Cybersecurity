@@ -205,6 +205,7 @@ export default function History() {
               <option value="telegram">Telegram</option>
               <option value="extension">Extension</option>
               <option value="ocr">OCR</option>
+              <option value="batch">Batch</option>
             </select>
           </label>
 

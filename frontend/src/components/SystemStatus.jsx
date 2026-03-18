@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getHealth } from "../services/api";
 
-const sourceItems = ["Website", "Telegram", "Extension", "OCR"];
+const sourceItems = ["Website", "Telegram", "Extension", "OCR", "Batch"];
 
 export default function SystemStatus() {
   const [status, setStatus] = useState("checking");
