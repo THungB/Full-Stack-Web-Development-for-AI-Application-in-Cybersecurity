@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #11203b;
+  background: #f6f3eb;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.22), transparent 34%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 28%),
+    linear-gradient(180deg, #fffdf8 0%, #f6f3eb 100%);
+  color: #11203b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(249, 115, 22, 0.2);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink;
+  }
+
+  p {
+    @apply text-steel;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-[28px] border border-white/70 bg-white/85 shadow-panel backdrop-blur;
+  }
+
+  .soft-panel {
+    @apply rounded-3xl border border-ink/10 bg-[#fffaf0]/90;
+  }
+
+  .section-kicker {
+    @apply inline-flex items-center rounded-full border border-ink/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-steel;
+  }
+
+  .field {
+    @apply w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition duration-200 placeholder:text-steel/60 focus:border-signal/40 focus:ring-4 focus:ring-signal/10;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-signal disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-signal/40 hover:text-signal;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .table-cell {
+    @apply border-b border-ink/10 px-4 py-4 align-top text-sm text-ink;
+  }
+
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(17, 32, 59, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17, 32, 59, 0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+}

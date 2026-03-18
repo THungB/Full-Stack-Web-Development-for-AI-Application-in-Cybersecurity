@@ -11,6 +11,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+node_modules/
 downloads/
 eggs/
 .eggs/
@@ -60,6 +61,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+spam_detection.db
+spam_detection.db-journal
 
 # Flask stuff:
 instance/

@@ -1,0 +1,23 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+
+from database.database import Base
+
+
+class Scan(Base):
+    __tablename__ = "scans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message = Column(Text, nullable=False)
+    result = Column(String(20), nullable=False, index=True)
+    confidence = Column(Float, nullable=False)
+    source = Column(String(50), nullable=False, index=True)
+    username = Column(String(255), nullable=True)
+    keywords = Column(Text, nullable=True)
+    timestamp = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
