@@ -6,33 +6,6 @@ Full-stack spam detection project with:
 - `backend/`: FastAPI + SQLite API
 - `browser-extension/`: Chromium extension for highlighted text scanning
 
-## Project Structure
-
-```text
-Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity/
-├── backend/                  # FastAPI backend, ML models, and SQLite database
-│   ├── bot/                  # Chat/Bot related code
-│   ├── database/             # SQLite database and models
-│   ├── ml/                   # Machine learning models and scripts
-│   ├── routes/               # FastAPI API endpoints
-│   ├── main.py               # FastAPI application entry point
-│   └── requirements.txt      # Backend dependencies
-├── browser-extension/        # Chromium extension for spam detection
-│   ├── background.js         # Extension background script
-│   ├── content.js            # Extension content script
-│   └── manifest.json         # Extension manifest
-├── frontend/                 # React dashboard UI
-│   ├── src/                  # React source files
-│   ├── index.html            # Main HTML file
-│   ├── package.json          # Frontend dependencies
-│   ├── vite.config.js        # Vite configuration
-│   └── tailwind.config.js    # Tailwind CSS configuration
-├── requirements/             # Assigment Description and Criteria
-├── .gitignore                # Git ignore file
-├── LICENSE                   # Project license
-└── README.md                 # Project documentation
-```
-
 ## Run the frontend
 
 ```bash
