@@ -149,6 +149,11 @@ async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db))
 
     try:
         extracted_text = pytesseract.image_to_string(pil_image).strip()
+    except pytesseract.TesseractNotFoundError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Tesseract is not installed or not in PATH. Please install Tesseract-OCR to use the image scan feature.",
+        ) from error
     except Exception as error:
         raise HTTPException(
             status_code=500,

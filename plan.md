@@ -24,6 +24,66 @@ A full-stack web application that integrates a **pre-trained** spam detection ML
 
 ---
 
+## Progress Snapshot
+
+**Status date:** 23 March 2026  
+**Reporting basis:** repository evidence, not only the original delivery sequence
+
+The assignment plan below is still the reference architecture. This snapshot records what is already implemented in the repo, what is still in progress, what remains pending, and what has been added beyond the original plan.
+
+### Milestone Status Against The 23-Day Timeline
+
+| Timeline window | Planned deliverable | Current status | Evidence from repo |
+| --------------- | ------------------- | -------------- | ------------------ |
+| Mar 18 to 19 | Project setup, folder structure, FastAPI skeleton + CORS | `Completed` | Repo structure, launch scripts, FastAPI app startup, and CORS config are present. |
+| Mar 20 to 22 | FastAPI endpoints + SQLite schema + load pre-trained ML model (.pkl) | `Completed` | `backend/main.py`, `backend/routes/`, SQLAlchemy schema, and predictor loading/fallback flow are present. |
+| Mar 21 to 22 | Telegram bot -> POST `/scan` + local test flow | `Completed` | `backend/bot/telegram_bot.py` posts messages to the backend with `source: "telegram"`. |
+| Mar 23 to 27 | React frontend, three pages, Axios layer, OCR scanner | `In Progress` | Dashboard, Scan, History, Axios service, and OCR UI already exist; frontend polish is still active on 2026-03-23. |
+| Mar 28 to 30 | 3 Recharts charts + auto-refresh + CSV export | `Completed` | Dashboard chart components, history polling, and CSV export are implemented already. |
+| Mar 31 to Apr 2 | Browser extension + Chromium browser testing | `Completed` | `browser-extension/manifest.json`, `content.js`, and `background.js` are present. |
+| Apr 1 to Apr 2 | OCR endpoint + upload / screen capture integration | `Completed` | `POST /scan/ocr` and the frontend OCR scanner are wired together. |
+| Apr 3 to Apr 5 | Testing, error handling, responsive polish, validation edge cases | `In Progress` | Frontend tests exist and error handling is visible in UI/API code, but backend automated tests are not evidenced yet. |
+| Apr 6 to Apr 7 | Report and README | `In Progress` | Documentation exists and is being synchronized with actual implementation status. |
+| Apr 8 to Apr 10 | Demo video and final submission | `Pending` | No repository evidence yet. |
+
+### Feature Status Snapshot
+
+| Feature | Status | Notes |
+| ------- | ------ | ----- |
+| Dashboard summary cards and charts | `Completed` | Dashboard page and chart components are present in the frontend. |
+| Manual website text scan | `Completed` | `ScanForm` calls `POST /scan` and shows result cards. |
+| OCR image scan flow | `Completed` | Frontend upload/capture UI and backend OCR route are implemented. |
+| Telegram bot source | `Completed` | Bot script forwards messages to the backend. |
+| Browser extension source | `Completed` | Manifest V3 extension is included for highlighted text scans. |
+| History filters and sorting | `Completed` | Result/source filters and sort order controls are present in `History.jsx`. |
+| History auto-refresh | `Completed` | The page polls every 10 seconds. |
+| History CSV export | `Completed` | Current page rows can be exported from the history screen. |
+| Delete history records | `Completed` | Frontend delete action calls `DELETE /history/{id}`. |
+| Responsive UI implementation | `In Progress` | Layouts are responsive in code, but final polish is still ongoing. |
+| Frontend automated tests | `Needs Verification` | Test files exist, but Vitest could not be run successfully in this sandbox because of `spawn EPERM`. |
+| Backend automated tests | `Pending` | No backend test suite is evidenced in the repo. |
+| Demo video and final submission assets | `Pending` | Not present in the repository yet. |
+| Batch CSV testing | `Extra Scope` | `POST /scan/batch` and the Batch Test UI are implemented beyond the original plan. |
+| Health check and live system status | `Extra Scope` | `/health` plus frontend API availability checks are present. |
+| Demo seed support | `Extra Scope` | Backend seeds initial demo records when the database is empty. |
+
+### Current Evidence From Repo
+
+- Frontend routes currently evidenced in code: `/`, `/scan`, `/history`
+- Backend routes currently evidenced in code: `POST /scan`, `POST /scan/ocr`, `POST /scan/batch`, `GET /history`, `DELETE /history/{id}`, `GET /stats`, `GET /health`
+- Dashboard charts, history filters/export/delete, OCR scan flow, Telegram bot, browser extension, batch testing, `/health`, and demo seed support are all implemented in the repository
+- `frontend/src/test/ScanForm.test.jsx` and `frontend/src/test/HistoryTable.test.jsx` show frontend test intent, even though sandbox execution is currently blocked
+- `npm run build` succeeds for the frontend production build
+
+### Remaining Work / Verification Gaps
+
+- Backend automated tests are not evidenced in the repo yet
+- Frontend test execution needs to be re-verified outside this sandbox because the current environment returns `spawn EPERM`
+- Demo video and final submission artifacts are still pending
+- Responsive polish and general UI refinement appear to be ongoing on 2026-03-23
+
+---
+
 ## Tech Stack
 
 | Layer             | Technology                        | Purpose                                    |
@@ -1157,23 +1217,25 @@ project-root/
 
 ---
 
-## HD Features Checklist
+## HD Feature Status
 
-- [ ] 3 interactive charts with hover tooltips (Dashboard)
-- [ ] Four input sources: website form, Telegram bot, browser extension, OCR scanner
-- [ ] Browser extension works on Chrome, Cốc Cốc, and Opera
-- [ ] OCR: image upload + screen capture to extract and scan text
-- [ ] Pagination with filter and sort on History table
-- [ ] Confidence score displayed per result
-- [ ] Source tagging per result (website / Telegram / extension / OCR)
-- [ ] Auto-refresh every 10 seconds on History page
-- [ ] Export history as CSV
-- [ ] Responsive design (desktop, tablet, mobile)
-- [ ] Input validation with dynamic feedback on Scan form
-- [ ] Keyword highlighting on scan results
-- [ ] Message preview truncation with click-to-expand in History table
-- [ ] Global error handling on backend (HTTP 400 / 422 / 404 / 500)
-- [ ] Pre-trained model loaded once at startup (not per request, no training in app)
+- `Completed`: 3 interactive charts with hover tooltips (Dashboard)
+- `Completed`: Four planned input sources: website form, Telegram bot, browser extension, OCR scanner
+- `Completed`: Browser extension works from the included Chromium Manifest V3 codebase
+- `Completed`: OCR upload and screen capture flow to extract and scan text
+- `Completed`: Pagination with filter and sort on the History table
+- `Completed`: Confidence score displayed per result
+- `Completed`: Source tagging per result (website / Telegram / extension / OCR)
+- `Completed`: Auto-refresh every 10 seconds on the History page
+- `Completed`: Export history as CSV
+- `In Progress`: Responsive design (desktop, tablet, mobile) is present in code and still being polished
+- `Completed`: Input validation with dynamic feedback on the Scan form
+- `Completed`: Keyword highlighting / keyword surfacing on scan results
+- `Completed`: Message preview truncation with click-to-expand in the History table
+- `In Progress`: Global error handling is present across the backend and frontend, with more testing still needed
+- `Completed`: Pre-trained model loaded once at startup with fallback predictor support when the `.pkl` file is unavailable
+- `Extra Scope`: Batch CSV testing with metrics and optional storage
+- `Extra Scope`: `/health` endpoint, frontend live system status, and demo database seeding
 
 ---
 
@@ -1213,4 +1275,4 @@ project-root/
 
 ---
 
-_Last updated: 18 March 2026_
+_Last updated: 23 March 2026_
