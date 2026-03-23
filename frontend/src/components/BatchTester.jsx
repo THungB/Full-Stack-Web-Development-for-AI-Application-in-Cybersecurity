@@ -65,9 +65,7 @@ function exportBatchResults(items) {
 function MetricCard({ label, value, hint }) {
   return (
     <article className="rounded-[24px] border border-ink/10 bg-white p-4">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-        {label}
-      </p>
+      <p className="text-xs font-medium text-steel">{label}</p>
       <p className="mt-3 text-3xl font-bold text-ink">{value}</p>
       <p className="mt-2 text-sm text-steel">{hint}</p>
     </article>
@@ -115,13 +113,11 @@ export default function BatchTester({ onSuccess, onError }) {
 
   return (
     <div className="space-y-6">
-      <section className="soft-panel p-5 sm:p-6">
+      <section className="panel p-5 sm:p-6">
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-                Batch Test
-              </p>
+              <p className="text-xs font-medium text-steel">Batch Test</p>
               <h3 className="mt-2 text-2xl font-bold">
                 Run spam and ham checks from a CSV file
               </h3>
@@ -156,15 +152,6 @@ export default function BatchTester({ onSuccess, onError }) {
                 {loading ? "Running Batch..." : "Run Batch Test"}
               </button>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="chip bg-white text-steel">Required: message</span>
-            <span className="chip bg-white text-steel">
-              Optional: expected_label
-            </span>
-            <span className="chip bg-white text-steel">Max 500 rows</span>
-            <span className="chip bg-white text-steel">UTF-8 CSV</span>
           </div>
 
           <input
@@ -248,7 +235,7 @@ export default function BatchTester({ onSuccess, onError }) {
         <section className="panel overflow-hidden">
           <div className="flex flex-col gap-4 border-b border-ink/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="section-kicker">Batch Results</p>
+              <p className="text-xs font-medium text-steel">Batch Results</p>
               <h3 className="mt-3 text-2xl font-bold">Per-row predictions</h3>
               <p className="mt-2 text-sm text-steel">
                 Review failed rows, compare expected labels, and export the full
@@ -290,7 +277,7 @@ export default function BatchTester({ onSuccess, onError }) {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {item.confidence !== null && item.confidence !== undefined ? (
-                    <span className="chip bg-[#faf6ed] text-ink">
+                    <span className="chip bg-slate-100 text-ink">
                       Confidence {formatConfidence(item.confidence)}
                     </span>
                   ) : null}
@@ -320,7 +307,7 @@ export default function BatchTester({ onSuccess, onError }) {
           <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full border-collapse">
               <thead>
-                <tr className="bg-[#faf6ed] text-left">
+                <tr className="border-b border-slate-100 bg-white text-left">
                   {[
                     "Row",
                     "Status",

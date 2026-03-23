@@ -40,24 +40,16 @@ export default function ScanForm({ onSubmit }) {
   };
 
   return (
-    <form className="soft-panel p-5 sm:p-6" onSubmit={handleSubmit}>
+    <form className="panel p-5 sm:p-6" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-              Manual Scan
-            </p>
+            <p className="text-xs font-medium text-steel">Manual Scan</p>
             <h3 className="mt-2 text-2xl font-bold">Paste a message to inspect</h3>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-steel">
+          <span className="text-xs font-medium text-steel">
             {message.length} / {MAX_LENGTH}
           </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <span className="chip bg-white text-steel">Trim whitespace</span>
-          <span className="chip bg-white text-steel">Min 10 chars</span>
-          <span className="chip bg-white text-steel">Max 2000 chars</span>
         </div>
 
         <label className="sr-only" htmlFor="message">

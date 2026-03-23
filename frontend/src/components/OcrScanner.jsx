@@ -91,13 +91,11 @@ export default function OcrScanner({ onResult, onError }) {
   };
 
   return (
-    <div className="soft-panel p-5 sm:p-6">
+    <div className="panel p-5 sm:p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-              OCR Scanner
-            </p>
+            <p className="text-xs font-medium text-steel">OCR Scanner</p>
             <h3 className="mt-2 text-2xl font-bold">
               Extract text from screenshots
             </h3>
@@ -126,12 +124,6 @@ export default function OcrScanner({ onResult, onError }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="chip bg-white text-steel">PNG / JPG / WebP</span>
-          <span className="chip bg-white text-steel">Max 5MB</span>
-          <span className="chip bg-white text-steel">Live screen capture</span>
-        </div>
-
         <input
           ref={fileInputRef}
           type="file"
@@ -143,7 +135,7 @@ export default function OcrScanner({ onResult, onError }) {
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[24px] border border-dashed border-ink/12 bg-white/60 p-4">
             <p className="text-sm font-semibold text-ink">Image preview</p>
-            <div className="mt-4 flex min-h-[200px] items-center justify-center overflow-hidden rounded-[20px] bg-[#f2efe7] sm:min-h-[240px]">
+            <div className="mt-4 flex min-h-[240px] items-center justify-center overflow-hidden rounded-[20px] bg-slate-50">
               {preview ? (
                 <img
                   src={preview}
@@ -161,7 +153,7 @@ export default function OcrScanner({ onResult, onError }) {
 
           <div className="rounded-[24px] border border-ink/10 bg-white p-4">
             <p className="text-sm font-semibold text-ink">OCR extraction</p>
-            <div className="mt-4 min-h-[200px] rounded-[20px] bg-[#faf6ed] p-4 sm:min-h-[240px]">
+            <div className="mt-4 min-h-[200px] rounded-[20px] bg-slate-50 p-4 sm:min-h-[240px]">
               {loading ? (
                 <p className="text-sm font-medium text-signal">
                   Extracting text and scanning image...

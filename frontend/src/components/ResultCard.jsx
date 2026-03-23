@@ -17,7 +17,7 @@ export default function ResultCard({ result }) {
     <section className="panel overflow-hidden p-5 sm:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="section-kicker">Latest Result</p>
+          <p className="text-xs font-medium text-steel">Latest Result</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <StatusBadge value={result.result} />
             <span className="chip bg-ink/10 text-ink">
@@ -25,6 +25,9 @@ export default function ResultCard({ result }) {
             </span>
             <span className="chip bg-white text-steel">
               Source {(result.source || "website").toUpperCase()}
+            </span>
+            <span className="chip bg-slate-100 text-steel">
+              ID: {result.id ?? "Pending"}
             </span>
           </div>
           <h3 className="mt-4 text-2xl font-bold">
@@ -39,14 +42,13 @@ export default function ResultCard({ result }) {
           </p>
         </div>
 
-        <div className="rounded-[24px] bg-[#faf6ed] px-5 py-4 text-sm text-steel lg:min-w-[180px]">
-          <p className="font-semibold text-ink">Record ID</p>
-          <p className="mt-1 text-lg font-bold text-ink">{result.id ?? "Pending"}</p>
-        </div>
+        <span className="chip bg-slate-100 text-steel">
+          ID: {result.id ?? "Pending"}
+        </span>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-[24px] bg-[#fffaf0] p-5">
+        <div className="rounded-[24px] bg-slate-50 p-5">
           <p className="text-sm font-semibold text-ink">
             {result.extracted_text ? "Extracted message" : "Message preview"}
           </p>
@@ -58,7 +60,7 @@ export default function ResultCard({ result }) {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-ink/10 bg-white p-5">
+        <div className="rounded-[24px] bg-slate-50 p-5">
           <p className="text-sm font-semibold text-ink">Flagged keywords</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {keywords.length ? (

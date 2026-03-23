@@ -16,7 +16,7 @@ npm run dev
 
 ## Run the backend
 
-```bash
+````bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
@@ -53,7 +53,7 @@ Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity/
 ├── .gitignore                # Git ignore file
 ├── LICENSE                   # Project license
 └── README.md                 # Project documentation
-```
+````
 
 ## Run the frontend
 

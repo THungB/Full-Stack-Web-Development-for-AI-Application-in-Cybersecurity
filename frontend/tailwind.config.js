@@ -20,9 +20,9 @@ export default {
           "radial-gradient(circle at top left, rgba(249,115,22,0.22), transparent 34%), radial-gradient(circle at top right, rgba(14,165,233,0.18), transparent 28%), linear-gradient(180deg, #fffdf8 0%, #f6f3eb 100%)"
       },
       fontFamily: {
-        display: ['\"Space Grotesk\"', '\"Segoe UI\"', "sans-serif"],
-        body: ['\"IBM Plex Sans\"', '\"Segoe UI\"', "sans-serif"]
-      }
+        display: ['"Geist"', '"Segoe UI"', "sans-serif"],
+        body: ['"IBM Plex Sans"', '"Segoe UI"', "sans-serif"]
+      },
     }
   },
   plugins: []

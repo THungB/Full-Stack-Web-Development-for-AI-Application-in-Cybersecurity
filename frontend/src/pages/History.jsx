@@ -1,10 +1,10 @@
 import { startTransition, useEffect, useState } from "react";
 import HistoryTable from "../components/HistoryTable";
-import InsightStrip from "../components/InsightStrip";
 import SectionHeading from "../components/SectionHeading";
 import SystemStatus from "../components/SystemStatus";
 import { useToast } from "../components/ToastProvider";
 import { deleteRecord, getHistory } from "../services/api";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 
 const PAGE_SIZE = 20;
 
@@ -94,6 +94,8 @@ export default function History() {
   }, [page, resultFilter, sourceFilter]);
 
   const sortedRecords = [...records].sort((a, b) => {
+    if (sortOrder === "conf_desc") return (b.confidence ?? 0) - (a.confidence ?? 0);
+    if (sortOrder === "conf_asc") return (a.confidence ?? 0) - (b.confidence ?? 0);
     const first = new Date(a.timestamp || 0).getTime();
     const second = new Date(b.timestamp || 0).getTime();
     return sortOrder === "desc" ? second - first : first - second;
@@ -132,48 +134,31 @@ export default function History() {
           title="Review and export scanned records"
           description="Filter by result and source, auto-refresh the table every 10 seconds, and export the current page as CSV."
           action={
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => downloadCsv(sortedRecords)}
-              disabled={!sortedRecords.length}
-            >
-              Export CSV
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-safe opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-safe"></span>
+                </span>
+                <span className="text-xs font-medium text-steel">Live</span>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => downloadCsv(sortedRecords)}
+                disabled={!sortedRecords.length}
+              >
+                Export CSV
+              </button>
+            </div>
           }
         />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SystemStatus />
-        <InsightStrip
-          items={[
-            {
-              label: "Current Page",
-              value: page,
-              description: "Keeps the current paginated slice of scan records in view.",
-            },
-            {
-              label: "Visible Spam",
-              value: spamCount,
-              description: "Spam results currently visible after active filters and sorting.",
-            },
-            {
-              label: "Visible Ham",
-              value: hamCount,
-              description: "Benign results currently visible after active filters and sorting.",
-            },
-            {
-              label: "CSV Ready",
-              value: sortedRecords.length ? "Yes" : "No",
-              description: "Export only includes the records currently rendered in the table.",
-            },
-          ]}
-        />
-      </div>
+      <SystemStatus />
 
       <section className="panel p-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-ink">Result filter</span>
             <select
@@ -218,15 +203,23 @@ export default function History() {
             >
               <option value="desc">Newest first</option>
               <option value="asc">Oldest first</option>
+              <option value="conf_desc">Highest confidence</option>
+              <option value="conf_asc">Lowest confidence</option>
             </select>
           </label>
-
-          <div className="rounded-[24px] bg-[#faf6ed] px-4 py-3">
-            <p className="text-sm font-semibold text-ink">Auto refresh</p>
-            <p className="mt-2 text-sm text-steel">
-              The table syncs with the backend every 10 seconds.
-            </p>
-          </div>
+          <button
+            type="button"
+            title="Reset filters"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-steel transition hover:border-ink/30 hover:text-ink"
+            onClick={() => {
+              setResultFilter("");
+              setSourceFilter("");
+              setSortOrder("desc");
+              setPage(1);
+            }}
+          >
+            <ArrowCounterClockwiseIcon size={16} weight="bold" />
+          </button>
         </div>
       </section>
 

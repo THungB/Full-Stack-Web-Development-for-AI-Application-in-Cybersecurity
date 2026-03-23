@@ -19,12 +19,16 @@ export default function SpamRatioChart({ spamCount, hamCount }) {
   return (
     <div className="panel p-5 sm:p-6">
       <div className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-          Detection Mix
-        </p>
+        <p className="text-xs font-medium text-steel">Detection Mix</p>
         <h3 className="mt-2 text-2xl font-bold">Spam vs ham ratio</h3>
       </div>
-      <div className="h-[260px] sm:h-[320px]">
+      <div className="relative h-[260px] sm:h-[320px]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-xs font-medium text-steel">Total</span>
+            <span className="mt-1 text-2xl font-bold text-ink sm:text-3xl">{total}</span>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -48,14 +52,6 @@ export default function SpamRatioChart({ spamCount, hamCount }) {
             <Legend wrapperStyle={{ fontSize: "12px" }} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
-      <div className="-mt-32 flex justify-center sm:-mt-40">
-        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border border-ink/10 bg-white/85 shadow-lg sm:h-28 sm:w-28">
-          <span className="text-xs font-semibold uppercase tracking-[0.22em] text-steel">
-            Total
-          </span>
-          <span className="mt-2 text-2xl font-bold text-ink sm:text-3xl">{total}</span>
-        </div>
       </div>
     </div>
   );
