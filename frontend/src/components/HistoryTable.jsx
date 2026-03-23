@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ClockCounterClockwise } from "@phosphor-icons/react";
 import StatusBadge from "./StatusBadge";
 import {
   formatConfidence,
@@ -14,16 +15,19 @@ export default function HistoryTable({ records, onDelete }) {
   };
 
   if (!records.length) {
-    return (
-      <div className="panel p-10 text-center">
-        <h3 className="text-2xl font-bold">No scan history yet</h3>
-        <p className="mt-3 text-sm text-steel">
-          Once the backend starts storing results, your website, OCR, Telegram,
-          extension, and batch scans will appear here.
-        </p>
+  return (
+    <div className="panel p-12 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">
+        <ClockCounterClockwise size={24} weight="light" className="text-steel" />
       </div>
-    );
-  }
+      <h3 className="mt-4 text-lg font-semibold text-ink">No scan history yet</h3>
+      <p className="mt-2 text-sm text-steel">
+        Once the backend starts storing results, your website, OCR, Telegram,
+        and extension scans will appear here.
+      </p>
+    </div>
+  );
+}
 
   return (
     <div className="panel overflow-hidden">
@@ -78,7 +82,7 @@ export default function HistoryTable({ records, onDelete }) {
       <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full border-collapse">
           <thead>
-            <tr className="bg-[#faf6ed] text-left">
+            <tr className="border-b border-slate-100 bg-white text-left">
               {["Timestamp", "Source", "Message", "Result", "Confidence", "Action"].map(
                 (header) => (
                   <th

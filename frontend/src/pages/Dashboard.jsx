@@ -3,7 +3,6 @@ import { useToast } from "../components/ToastProvider";
 import ActivityChart from "../components/Charts/ActivityChart";
 import ConfidenceChart from "../components/Charts/ConfidenceChart";
 import SpamRatioChart from "../components/Charts/SpamRatioChart";
-import InsightStrip from "../components/InsightStrip";
 import SectionHeading from "../components/SectionHeading";
 import SummaryCards from "../components/SummaryCards";
 import SystemStatus from "../components/SystemStatus";
@@ -86,35 +85,6 @@ export default function Dashboard() {
           </p>
         </div>
       ) : null}
-
-      <InsightStrip
-        items={[
-          {
-            label: "Live Sources",
-            value: 5,
-            description:
-              "Website, Telegram, browser extension, OCR, and batch routes are represented in the UI.",
-          },
-          {
-            label: "Refresh Pattern",
-            value: "10s",
-            description:
-              "History views can surface new scans on a rolling polling interval.",
-          },
-          {
-            label: "Risk Focus",
-            value: stats.spam_count > stats.ham_count ? "Spam-heavy" : "Balanced",
-            description:
-              "A quick read on whether your current dataset leans toward suspicious or benign traffic.",
-          },
-          {
-            label: "Confidence Bands",
-            value: stats.buckets.length || 5,
-            description:
-              "Distribution chart groups predictions into readable confidence buckets.",
-          },
-        ]}
-      />
 
       <SummaryCards stats={stats} />
 

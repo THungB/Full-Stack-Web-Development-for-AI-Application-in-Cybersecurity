@@ -29,6 +29,7 @@ Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity/
 │   └── tailwind.config.js    # Tailwind CSS configuration
 ├── requirements/             # Assigment Description and Criteria
 ├── .gitignore                # Git ignore file
+├── CHANGELOG.md              # Record changes
 ├── LICENSE                   # Project license
 └── README.md                 # Project documentation
 ```

@@ -2,8 +2,8 @@ export default function SectionHeading({ eyebrow, title, description, action }) 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
-        {eyebrow ? <p className="section-kicker">{eyebrow}</p> : null}
-        <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+        {eyebrow ? <p className="text-xs font-medium text-steel">{eyebrow}</p> : null}
+        <h2 className="mt-1 text-2xl font-bold tracking-tight">
           {title}
         </h2>
         {description ? (

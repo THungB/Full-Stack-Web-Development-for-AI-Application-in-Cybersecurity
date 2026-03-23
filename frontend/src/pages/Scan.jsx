@@ -1,6 +1,5 @@
 import { useState } from "react";
 import BatchTester from "../components/BatchTester";
-import InsightStrip from "../components/InsightStrip";
 import OcrScanner from "../components/OcrScanner";
 import ResultCard from "../components/ResultCard";
 import ScanForm from "../components/ScanForm";
@@ -78,37 +77,7 @@ export default function Scan() {
         />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SystemStatus />
-        <InsightStrip
-          items={[
-            {
-              label: "Validation",
-              value: "10-2000",
-              description:
-                "Manual input enforces trimmed text with a minimum and maximum character boundary.",
-            },
-            {
-              label: "OCR Inputs",
-              value: "PNG/JPG/WebP",
-              description:
-                "Screenshots can be uploaded directly or captured live from the current screen.",
-            },
-            {
-              label: "Batch Format",
-              value: "CSV",
-              description:
-                "Upload a file with a required message column and optional expected labels for accuracy scoring.",
-            },
-            {
-              label: "Feedback",
-              value: activeTab === "batch" ? "Toast + Table" : "Toast + Card",
-              description:
-                "Successful scans appear immediately in a result card or batch results table with confidence and keywords.",
-            },
-          ]}
-        />
-      </div>
+      <SystemStatus />
 
       <section className="panel p-4 sm:p-5">
         <div className="flex flex-wrap gap-3">

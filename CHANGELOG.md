@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+- **2026-03-23**: Overhaul frontend UI/UX to remove boring design patterns, normalize colors, typography, and layouts across all pages (Bùi Tiến Hưng) [`ui-overhaul`]
 - **2026-03-18**: Update README.md (THungB) [`4729478`]
 - **2026-03-18**: Remove unused file and update gitignore (THungB) [`8730a65`]
 - **2026-03-18**: Update .gitignore (KindaRusty) [`9a453b6`]

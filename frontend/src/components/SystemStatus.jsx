@@ -46,7 +46,7 @@ export default function SystemStatus() {
     <section className="panel overflow-hidden p-5 sm:p-6">
       <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
         <div>
-          <p className="section-kicker">System Pulse</p>
+          <p className="text-xs font-medium text-steel">System Pulse</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className={`chip border ${tone}`}>
               {status === "online"
@@ -64,7 +64,7 @@ export default function SystemStatus() {
 
         <div className="flex flex-wrap gap-2">
           {sourceItems.map((item) => (
-            <span key={item} className="chip border border-ink/10 bg-[#faf6ed] text-ink">
+            <span key={item} className="chip border border-slate-100 bg-white text-ink">
               {item}
             </span>
           ))}
