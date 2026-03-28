@@ -3,17 +3,17 @@ from pathlib import Path
 
 try:
     import joblib
-except ImportError:  # pragma: no cover
+except ImportError:
     joblib = None
 
 try:
     import pandas as pd
-except ImportError:  # pragma: no cover
+except ImportError:
     pd = None
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Sử dụng chính xác file pipeline có chứa metadata
+# Use the correct path to the model file
 MODEL_PATH = BASE_DIR / "ml" / "spam_pipeline_with_metadata.pkl"
 
 def _load_model():
@@ -47,7 +47,7 @@ def predict(text: str):
     normalized = preprocess(text)
     keywords = extract_keywords(normalized)
 
-    # Trích xuất 6 trường dữ liệu metadata được pipeline yêu cầu
+    # Get 6 features that the pipeline requires
     text_length = len(text)
     word_count = len(text.split())
     special_char_count = sum(not c.isalnum() and not c.isspace() for c in text)
@@ -65,7 +65,7 @@ def predict(text: str):
         'is_weekend': is_weekend
     }])
 
-    # Dự đoán thông qua Pipeline
+    # Predict through Pipeline
     if hasattr(MODEL, "predict_proba"):
         probabilities = MODEL.predict_proba(features_df)[0]
         spam_confidence = float(probabilities[1])
