@@ -5,6 +5,7 @@ import ResultCard from "../components/ResultCard";
 import ScanForm from "../components/ScanForm";
 import SectionHeading from "../components/SectionHeading";
 import SystemStatus from "../components/SystemStatus";
+import TelegramInbox from "../components/TelegramInbox";
 import { useToast } from "../components/ToastProvider";
 import { scanMessage } from "../services/api";
 
@@ -12,6 +13,7 @@ const tabs = [
   { key: "text", label: "Text Input" },
   { key: "ocr", label: "OCR Scanner" },
   { key: "batch", label: "Batch Test" },
+  { key: "telegram", label: "Telegram Inbox" },
 ];
 
 export default function Scan() {
@@ -72,8 +74,8 @@ export default function Scan() {
       <section className="panel overflow-hidden p-6 sm:p-8">
         <SectionHeading
           eyebrow="Scan Workspace"
-          title="Inspect suspicious messages from text, screenshots, or batch CSVs"
-          description="Switch between manual input, OCR capture, and batch testing. Single scans show an instant result card, while batch runs return per-row predictions and evaluation metrics."
+          title="Inspect suspicious messages from text, screenshots, batch CSVs, or Telegram"
+          description="Switch between manual input, OCR capture, batch testing, or review messages sent to your Telegram bot."
         />
       </section>
 
@@ -102,7 +104,7 @@ export default function Scan() {
         <ScanForm onSubmit={handleManualScan} />
       ) : activeTab === "ocr" ? (
         <OcrScanner onResult={handleOcrResult} onError={handleOcrError} />
-      ) : (
+      ) : activeTab === "batch" ? (
         <BatchTester
           onSuccess={(data) => {
             showToast({
@@ -121,11 +123,13 @@ export default function Scan() {
             });
           }}
         />
+      ) : (
+        <TelegramInbox showToast={showToast} />
       )}
 
-      {activeTab !== "batch" && result ? (
+      {activeTab !== "batch" && activeTab !== "telegram" && result ? (
         <ResultCard result={result} />
-      ) : activeTab !== "batch" ? (
+      ) : activeTab !== "batch" && activeTab !== "telegram" ? (
         <section className="panel p-6 sm:p-8">
           <p className="section-kicker">Result Preview</p>
           <h3 className="mt-4 text-2xl font-bold">No scan result yet</h3>

@@ -56,3 +56,15 @@ export const getHealth = () => api.get("/health");
 export const deleteRecord = (id) => api.delete(`/history/${id}`);
 
 export default api;
+
+export const getTelegramMessages = (page = 1, limit = 20, filter = "") =>
+  api.get("/telegram/messages", {
+    params: {
+      page,
+      limit,
+      filter,
+    },
+  });
+
+export const deleteTelegramRecord = (id) =>
+  api.delete(`/telegram/messages/${id}`);

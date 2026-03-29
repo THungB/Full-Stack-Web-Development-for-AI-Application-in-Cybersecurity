@@ -7,13 +7,16 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 
 FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8000/scan")
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+MIN_MESSAGE_LENGTH = 10
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    text = update.message.text
+    text = update.message.text.strip()
+    if len(text) < MIN_MESSAGE_LENGTH:
+        return
     username = update.effective_user.username if update.effective_user else None
 
     try:
