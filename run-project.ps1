@@ -34,9 +34,8 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
     python -m venv .venv
 }
 & '.venv\Scripts\python.exe' -m pip install -r requirements.txt
-& '.venv\Scripts\Activate.ps1'
 Write-Host 'Starting FastAPI backend on http://localhost:8000' -ForegroundColor Green
-uvicorn main:app --reload --port 8000
+& '.venv\Scripts\python.exe' -m uvicorn main:app --reload --port 8000
 "@
 
 $frontendCommand = @"
