@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 
@@ -80,8 +81,18 @@ def create_scan_record(
     message: str,
     source: str,
     username: str | None = None,
+    # FIX: Accept pre-computed prediction to avoid calling predict() inside this
+    # function when it's already been awaited via asyncio.to_thread upstream.
+    prediction: tuple | None = None,
 ):
-    result, confidence, keywords = predict(message)
+    if prediction is None:
+        # Fallback for the sync /scan endpoint — safe because that endpoint is
+        # defined with plain `def` (not async def), so it runs in a thread pool
+        # automatically by FastAPI and will NOT block the event loop.
+        result, confidence, keywords = predict(message)
+    else:
+        result, confidence, keywords = prediction
+
     record = Scan(
         message=message,
         result=result,
@@ -108,6 +119,9 @@ def parse_bool_form_value(value: str | None, default: bool):
     raise HTTPException(status_code=400, detail="Invalid boolean form value.")
 
 
+# NOTE: This endpoint is `def` (not `async def`) on purpose.
+# FastAPI automatically runs plain `def` endpoints in a thread pool,
+# so calling predict() here is safe and will NOT block the event loop.
 @router.post("/scan")
 def scan_message(payload: ScanRequest, db: Session = Depends(get_db)):
     try:
@@ -147,8 +161,13 @@ async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db))
     except UnidentifiedImageError as error:
         raise HTTPException(status_code=400, detail="Invalid image file.") from error
 
+    # FIX #1: Offload blocking OCR call to a thread pool so the event loop is
+    # free to handle other requests while Tesseract is running.
     try:
-        extracted_text = pytesseract.image_to_string(pil_image).strip()
+        extracted_text = await asyncio.to_thread(
+            pytesseract.image_to_string, pil_image
+        )
+        extracted_text = extracted_text.strip()
     except pytesseract.TesseractNotFoundError as error:
         raise HTTPException(
             status_code=503,
@@ -166,10 +185,14 @@ async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db))
     if len(extracted_text) > 2000:
         extracted_text = extracted_text[:2000]
 
+    # FIX #2: Offload the ML prediction to a thread pool as well.
+    prediction = await asyncio.to_thread(predict, extracted_text)
+
     record = create_scan_record(
         db=db,
         message=extracted_text,
         source="ocr",
+        prediction=prediction,
     )
     response = serialize_scan(record)
     response["extracted_text"] = extracted_text
@@ -216,21 +239,11 @@ async def scan_batch(
             detail="CSV must include a 'message' column.",
         )
 
-    items = []
-    processed_count = 0
-    failed_count = 0
-    spam_count = 0
-    ham_count = 0
-    correct_count = 0
-    labeled_count = 0
-    confusion = {
-        "true_spam_pred_spam": 0,
-        "true_spam_pred_ham": 0,
-        "true_ham_pred_spam": 0,
-        "true_ham_pred_ham": 0,
-    }
-
+    # --- Parse and validate all rows first (pure Python, no blocking I/O) ---
+    validated_rows = []
+    failed_rows = []
     processed_rows = 0
+
     for index, row in enumerate(reader, start=1):
         if not any(str(value or "").strip() for value in row.values()):
             continue
@@ -252,100 +265,107 @@ async def scan_batch(
             source = validate_source_value(raw_source)
             if raw_expected and raw_expected not in EXPECTED_LABELS:
                 raise ValueError("expected_label must be either spam or ham.")
-
-            if should_store:
-                record = create_scan_record(
-                    db=db,
-                    message=message,
-                    source=source,
-                    username=raw_username,
-                )
-                result_payload = serialize_scan(record)
-                predicted_label = result_payload["result"]
-                confidence = result_payload["confidence"]
-                keywords = result_payload["keywords"]
-                record_id = result_payload["id"]
-            else:
-                predicted_label, confidence, keywords = predict(message)
-                confidence = round(float(confidence), 4)
-                record_id = None
-
-            processed_count += 1
-            if predicted_label == "spam":
-                spam_count += 1
-            else:
-                ham_count += 1
-
-            is_correct = None
-            if raw_expected:
-                labeled_count += 1
-                is_correct = predicted_label == raw_expected
-                if is_correct:
-                    correct_count += 1
-
-                if raw_expected == "spam":
-                    if predicted_label == "spam":
-                        confusion["true_spam_pred_spam"] += 1
-                    else:
-                        confusion["true_spam_pred_ham"] += 1
-                else:
-                    if predicted_label == "spam":
-                        confusion["true_ham_pred_spam"] += 1
-                    else:
-                        confusion["true_ham_pred_ham"] += 1
-
-            items.append(
-                {
-                    "row": index,
-                    "record_id": record_id,
-                    "message": message,
-                    "source": source,
-                    "username": raw_username,
-                    "predicted_label": predicted_label,
-                    "confidence": confidence,
-                    "keywords": keywords,
-                    "expected_label": raw_expected or None,
-                    "correct": is_correct,
-                    "status": "processed",
-                    "error": None,
-                }
-            )
+            validated_rows.append((index, message, source, raw_expected, raw_username))
         except ValueError as error:
-            failed_count += 1
-            items.append(
-                {
-                    "row": index,
-                    "record_id": None,
-                    "message": raw_message,
-                    "source": raw_source.strip().lower() or normalized_default_source,
-                    "username": raw_username,
-                    "predicted_label": None,
-                    "confidence": None,
-                    "keywords": [],
-                    "expected_label": raw_expected or None,
-                    "correct": None,
-                    "status": "failed",
-                    "error": str(error),
-                }
+            failed_rows.append((index, raw_message, raw_source, raw_expected, raw_username, str(error)))
+
+    if not validated_rows and not failed_rows:
+        raise HTTPException(status_code=400, detail="Batch file has no data rows.")
+
+    # FIX #3: Run ALL predictions concurrently in the thread pool instead of
+    # calling predict() one-by-one inside the async loop. This releases the
+    # event loop between calls and avoids blocking for up to 500 iterations.
+    messages_to_predict = [row[1] for row in validated_rows]
+    predictions = await asyncio.gather(
+        *[asyncio.to_thread(predict, msg) for msg in messages_to_predict]
+    )
+
+    # --- Build results ---
+    items = []
+    processed_count = 0
+    failed_count = len(failed_rows)
+    spam_count = 0
+    ham_count = 0
+    correct_count = 0
+    labeled_count = 0
+    confusion = {
+        "true_spam_pred_spam": 0,
+        "true_spam_pred_ham": 0,
+        "true_ham_pred_spam": 0,
+        "true_ham_pred_ham": 0,
+    }
+
+    for (index, message, source, raw_expected, raw_username), (predicted_label, confidence, keywords) in zip(validated_rows, predictions):
+        confidence = round(float(confidence), 4)
+        record_id = None
+
+        if should_store:
+            record = create_scan_record(
+                db=db,
+                message=message,
+                source=source,
+                username=raw_username,
+                prediction=(predicted_label, confidence, keywords),
             )
-        except Exception as error:
-            failed_count += 1
-            items.append(
-                {
-                    "row": index,
-                    "record_id": None,
-                    "message": raw_message,
-                    "source": raw_source.strip().lower() or normalized_default_source,
-                    "username": raw_username,
-                    "predicted_label": None,
-                    "confidence": None,
-                    "keywords": [],
-                    "expected_label": raw_expected or None,
-                    "correct": None,
-                    "status": "failed",
-                    "error": str(error),
-                }
-            )
+            record_id = record.id
+
+        processed_count += 1
+        if predicted_label == "spam":
+            spam_count += 1
+        else:
+            ham_count += 1
+
+        is_correct = None
+        if raw_expected:
+            labeled_count += 1
+            is_correct = predicted_label == raw_expected
+            if is_correct:
+                correct_count += 1
+
+            if raw_expected == "spam":
+                if predicted_label == "spam":
+                    confusion["true_spam_pred_spam"] += 1
+                else:
+                    confusion["true_spam_pred_ham"] += 1
+            else:
+                if predicted_label == "spam":
+                    confusion["true_ham_pred_spam"] += 1
+                else:
+                    confusion["true_ham_pred_ham"] += 1
+
+        items.append({
+            "row": index,
+            "record_id": record_id,
+            "message": message,
+            "source": source,
+            "username": raw_username,
+            "predicted_label": predicted_label,
+            "confidence": confidence,
+            "keywords": keywords,
+            "expected_label": raw_expected or None,
+            "correct": is_correct,
+            "status": "processed",
+            "error": None,
+        })
+
+    for (index, raw_message, raw_source, raw_expected, raw_username, error_msg) in failed_rows:
+        items.append({
+            "row": index,
+            "record_id": None,
+            "message": raw_message,
+            "source": raw_source.strip().lower() or normalized_default_source,
+            "username": raw_username,
+            "predicted_label": None,
+            "confidence": None,
+            "keywords": [],
+            "expected_label": raw_expected or None,
+            "correct": None,
+            "status": "failed",
+            "error": error_msg,
+        })
+
+    # Sort items back by original row number
+    items.sort(key=lambda x: x["row"])
 
     if not items:
         raise HTTPException(status_code=400, detail="Batch file has no data rows.")
