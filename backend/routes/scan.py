@@ -5,7 +5,7 @@ import io
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db
 from database.schema import Scan
@@ -75,23 +75,34 @@ def validate_source_value(value: str):
     return normalized
 
 
-def create_scan_record(
+def parse_bool_form_value(value: str | None, default: bool):
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise HTTPException(status_code=400, detail="Invalid boolean form value.")
+
+
+async def create_scan_record(
     *,
-    db: Session,
+    db: AsyncSession,
     message: str,
     source: str,
     username: str | None = None,
-    # FIX: Accept pre-computed prediction to avoid calling predict() inside this
-    # function when it's already been awaited via asyncio.to_thread upstream.
     prediction: tuple | None = None,
 ):
+    """
+    Persist a Scan record asynchronously.
+    Pass `prediction=(result, confidence, keywords)` when the caller has
+    already awaited asyncio.to_thread(predict, ...) to avoid a double call.
+    """
     if prediction is None:
-        # Fallback for the sync /scan endpoint — safe because that endpoint is
-        # defined with plain `def` (not async def), so it runs in a thread pool
-        # automatically by FastAPI and will NOT block the event loop.
-        result, confidence, keywords = predict(message)
-    else:
-        result, confidence, keywords = prediction
+        prediction = await asyncio.to_thread(predict, message)
+
+    result, confidence, keywords = prediction
 
     record = Scan(
         message=message,
@@ -102,34 +113,21 @@ def create_scan_record(
         keywords=",".join(keywords),
     )
     db.add(record)
-    db.commit()
-    db.refresh(record)
+    await db.commit()        # FIX: async commit
+    await db.refresh(record) # FIX: async refresh
     return record
 
 
-def parse_bool_form_value(value: str | None, default: bool):
-    if value is None:
-        return default
-
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise HTTPException(status_code=400, detail="Invalid boolean form value.")
-
-
-# NOTE: This endpoint is `def` (not `async def`) on purpose.
-# FastAPI automatically runs plain `def` endpoints in a thread pool,
-# so calling predict() here is safe and will NOT block the event loop.
 @router.post("/scan")
-def scan_message(payload: ScanRequest, db: Session = Depends(get_db)):
+async def scan_message(payload: ScanRequest, db: AsyncSession = Depends(get_db)):
     try:
-        record = create_scan_record(
+        prediction = await asyncio.to_thread(predict, payload.message)
+        record = await create_scan_record(
             db=db,
             message=payload.message,
             source=payload.source,
             username=payload.username,
+            prediction=prediction,
         )
         return serialize_scan(record)
     except HTTPException:
@@ -139,7 +137,7 @@ def scan_message(payload: ScanRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/scan/ocr")
-async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db)):
+async def scan_ocr(image: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400,
@@ -161,8 +159,6 @@ async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db))
     except UnidentifiedImageError as error:
         raise HTTPException(status_code=400, detail="Invalid image file.") from error
 
-    # FIX #1: Offload blocking OCR call to a thread pool so the event loop is
-    # free to handle other requests while Tesseract is running.
     try:
         extracted_text = await asyncio.to_thread(
             pytesseract.image_to_string, pil_image
@@ -185,10 +181,9 @@ async def scan_ocr(image: UploadFile = File(...), db: Session = Depends(get_db))
     if len(extracted_text) > 2000:
         extracted_text = extracted_text[:2000]
 
-    # FIX #2: Offload the ML prediction to a thread pool as well.
     prediction = await asyncio.to_thread(predict, extracted_text)
 
-    record = create_scan_record(
+    record = await create_scan_record(
         db=db,
         message=extracted_text,
         source="ocr",
@@ -204,7 +199,7 @@ async def scan_batch(
     file: UploadFile = File(...),
     store_results: str | None = Form(default="false"),
     default_source: str | None = Form(default="batch"),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     file_name = (file.filename or "").lower()
     if file.content_type not in ALLOWED_BATCH_TYPES and not file_name.endswith(".csv"):
@@ -239,9 +234,9 @@ async def scan_batch(
             detail="CSV must include a 'message' column.",
         )
 
-    # --- Parse and validate all rows first (pure Python, no blocking I/O) ---
+    # --- Parse and validate all rows first (pure Python, no I/O) ---
     validated_rows = []
-    failed_rows = []
+    failed_rows    = []
     processed_rows = 0
 
     for index, row in enumerate(reader, start=1):
@@ -255,14 +250,14 @@ async def scan_batch(
                 detail=f"Batch size exceeds limit of {MAX_BATCH_ROWS} rows.",
             )
 
-        raw_message = str(row.get("message", "") or "")
-        raw_source = str(row.get("source", "") or normalized_default_source)
+        raw_message  = str(row.get("message", "") or "")
+        raw_source   = str(row.get("source", "") or normalized_default_source)
         raw_expected = str(row.get("expected_label", "") or "").strip().lower()
         raw_username = str(row.get("username", "") or "").strip() or None
 
         try:
             message = validate_message_text(raw_message)
-            source = validate_source_value(raw_source)
+            source  = validate_source_value(raw_source)
             if raw_expected and raw_expected not in EXPECTED_LABELS:
                 raise ValueError("expected_label must be either spam or ham.")
             validated_rows.append((index, message, source, raw_expected, raw_username))
@@ -272,35 +267,32 @@ async def scan_batch(
     if not validated_rows and not failed_rows:
         raise HTTPException(status_code=400, detail="Batch file has no data rows.")
 
-    # FIX #3: Run ALL predictions concurrently in the thread pool instead of
-    # calling predict() one-by-one inside the async loop. This releases the
-    # event loop between calls and avoids blocking for up to 500 iterations.
-    messages_to_predict = [row[1] for row in validated_rows]
+    # Run all predictions concurrently in the thread pool
     predictions = await asyncio.gather(
-        *[asyncio.to_thread(predict, msg) for msg in messages_to_predict]
+        *[asyncio.to_thread(predict, row[1]) for row in validated_rows]
     )
 
     # --- Build results ---
-    items = []
+    items         = []
     processed_count = 0
-    failed_count = len(failed_rows)
-    spam_count = 0
-    ham_count = 0
-    correct_count = 0
-    labeled_count = 0
+    failed_count    = len(failed_rows)
+    spam_count      = 0
+    ham_count       = 0
+    correct_count   = 0
+    labeled_count   = 0
     confusion = {
         "true_spam_pred_spam": 0,
-        "true_spam_pred_ham": 0,
-        "true_ham_pred_spam": 0,
-        "true_ham_pred_ham": 0,
+        "true_spam_pred_ham":  0,
+        "true_ham_pred_spam":  0,
+        "true_ham_pred_ham":   0,
     }
 
     for (index, message, source, raw_expected, raw_username), (predicted_label, confidence, keywords) in zip(validated_rows, predictions):
         confidence = round(float(confidence), 4)
-        record_id = None
+        record_id  = None
 
         if should_store:
-            record = create_scan_record(
+            record = await create_scan_record(
                 db=db,
                 message=message,
                 source=source,
@@ -334,57 +326,50 @@ async def scan_batch(
                     confusion["true_ham_pred_ham"] += 1
 
         items.append({
-            "row": index,
-            "record_id": record_id,
-            "message": message,
-            "source": source,
-            "username": raw_username,
+            "row":             index,
+            "record_id":       record_id,
+            "message":         message,
+            "source":          source,
+            "username":        raw_username,
             "predicted_label": predicted_label,
-            "confidence": confidence,
-            "keywords": keywords,
-            "expected_label": raw_expected or None,
-            "correct": is_correct,
-            "status": "processed",
-            "error": None,
+            "confidence":      confidence,
+            "keywords":        keywords,
+            "expected_label":  raw_expected or None,
+            "correct":         is_correct,
+            "status":          "processed",
+            "error":           None,
         })
 
     for (index, raw_message, raw_source, raw_expected, raw_username, error_msg) in failed_rows:
         items.append({
-            "row": index,
-            "record_id": None,
-            "message": raw_message,
-            "source": raw_source.strip().lower() or normalized_default_source,
-            "username": raw_username,
+            "row":             index,
+            "record_id":       None,
+            "message":         raw_message,
+            "source":          raw_source.strip().lower() or normalized_default_source,
+            "username":        raw_username,
             "predicted_label": None,
-            "confidence": None,
-            "keywords": [],
-            "expected_label": raw_expected or None,
-            "correct": None,
-            "status": "failed",
-            "error": error_msg,
+            "confidence":      None,
+            "keywords":        [],
+            "expected_label":  raw_expected or None,
+            "correct":         None,
+            "status":          "failed",
+            "error":           error_msg,
         })
 
-    # Sort items back by original row number
     items.sort(key=lambda x: x["row"])
 
     if not items:
         raise HTTPException(status_code=400, detail="Batch file has no data rows.")
 
-    precision_denominator = (
-        confusion["true_spam_pred_spam"] + confusion["true_ham_pred_spam"]
-    )
-    recall_denominator = (
-        confusion["true_spam_pred_spam"] + confusion["true_spam_pred_ham"]
-    )
+    precision_denominator = confusion["true_spam_pred_spam"] + confusion["true_ham_pred_spam"]
+    recall_denominator    = confusion["true_spam_pred_spam"] + confusion["true_spam_pred_ham"]
     precision = (
         confusion["true_spam_pred_spam"] / precision_denominator
-        if precision_denominator
-        else None
+        if precision_denominator else None
     )
     recall = (
         confusion["true_spam_pred_spam"] / recall_denominator
-        if recall_denominator
-        else None
+        if recall_denominator else None
     )
     f1_score = (
         (2 * precision * recall) / (precision + recall)
@@ -394,17 +379,17 @@ async def scan_batch(
 
     return {
         "summary": {
-            "total": len(items),
-            "processed": processed_count,
-            "failed": failed_count,
-            "spam_count": spam_count,
-            "ham_count": ham_count,
-            "labeled_count": labeled_count,
-            "correct_count": correct_count,
-            "accuracy": (correct_count / labeled_count) if labeled_count else None,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1_score,
+            "total":          len(items),
+            "processed":      processed_count,
+            "failed":         failed_count,
+            "spam_count":     spam_count,
+            "ham_count":      ham_count,
+            "labeled_count":  labeled_count,
+            "correct_count":  correct_count,
+            "accuracy":       (correct_count / labeled_count) if labeled_count else None,
+            "precision":      precision,
+            "recall":         recall,
+            "f1_score":       f1_score,
             "stored_results": should_store,
             "default_source": normalized_default_source,
         },

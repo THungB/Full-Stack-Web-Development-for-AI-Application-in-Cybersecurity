@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import Integer, case, cast, func
-from sqlalchemy.orm import Session
+from sqlalchemy import case, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db
 from database.schema import Scan
@@ -20,37 +20,34 @@ BUCKETS = [
 
 
 @router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
+async def get_stats(db: AsyncSession = Depends(get_db)):
 
-    # FIX #1: Replace .all() + Python sum() with a single SQL aggregation query.
-    # The DB engine does the counting — no rows are transferred to backend memory.
-    spam_ham = (
-        db.query(
+    # FIX: Single SQL aggregation — no rows transferred to Python memory
+    spam_ham_result = await db.execute(
+        select(
             func.sum(case((Scan.result == "spam", 1), else_=0)).label("spam_count"),
             func.sum(case((Scan.result == "ham",  1), else_=0)).label("ham_count"),
         )
-        .one()
     )
+    spam_ham   = spam_ham_result.one()
     spam_count = spam_ham.spam_count or 0
     ham_count  = spam_ham.ham_count  or 0
 
-    # FIX #2: Compute daily stats directly in SQL with GROUP BY date.
-    # Previously this fetched every row and iterated in Python.
+    # FIX: Daily stats via GROUP BY — only 14 aggregate rows returned
     start_date = datetime.now(timezone.utc).date() - timedelta(days=13)
     start_dt   = datetime.combine(start_date, datetime.min.time())
 
-    daily_rows = (
-        db.query(
+    daily_result = await db.execute(
+        select(
             func.date(Scan.timestamp).label("date"),
             func.count(Scan.id).label("total"),
             func.sum(case((Scan.result == "spam", 1), else_=0)).label("spam"),
         )
-        .filter(Scan.timestamp >= start_dt)
+        .where(Scan.timestamp >= start_dt)
         .group_by(func.date(Scan.timestamp))
-        .all()
     )
+    daily_rows = daily_result.all()
 
-    # Build a full 14-day map and merge DB results in
     daily_map = {
         (start_date + timedelta(days=i)).isoformat(): {"total": 0, "spam": 0}
         for i in range(14)
@@ -61,9 +58,8 @@ def get_stats(db: Session = Depends(get_db)):
             daily_map[date_key]["total"] = row.total or 0
             daily_map[date_key]["spam"]  = row.spam  or 0
 
-    # FIX #3: Compute confidence buckets in SQL using CASE WHEN expressions.
-    # Previously every record was loaded into Python and bucketed with a for-loop.
-    bucket_cases = case(
+    # FIX: Confidence buckets via SQL CASE WHEN — no per-record Python loop
+    bucket_case = case(
         *[
             (
                 (Scan.confidence >= lower) & (Scan.confidence < upper),
@@ -74,16 +70,16 @@ def get_stats(db: Session = Depends(get_db)):
         else_=None,
     )
 
-    bucket_rows = (
-        db.query(
-            bucket_cases.label("bucket"),
+    bucket_result = await db.execute(
+        select(
+            bucket_case.label("bucket"),
             func.sum(case((Scan.result == "spam", 1), else_=0)).label("spam"),
             func.sum(case((Scan.result == "ham",  1), else_=0)).label("ham"),
         )
-        .filter(bucket_cases.isnot(None))
-        .group_by(bucket_cases)
-        .all()
+        .where(bucket_case.isnot(None))
+        .group_by(bucket_case)
     )
+    bucket_rows = bucket_result.all()
 
     bucket_map = {label: {"spam": 0, "ham": 0} for label, _, _ in BUCKETS}
     for row in bucket_rows:
