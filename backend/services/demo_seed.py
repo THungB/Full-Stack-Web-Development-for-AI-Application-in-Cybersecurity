@@ -1,7 +1,8 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 from database.schema import Scan
 
@@ -148,11 +149,12 @@ DEMO_DATA = [
 ]
 
 
-def seed_demo_data_if_empty(db: Session) -> int:
+async def seed_demo_data_if_empty(db: AsyncSession) -> int:
     if not _is_seed_enabled():
         return 0
 
-    existing = db.query(Scan).count()
+    result = await db.execute(select(func.count(Scan.id)))
+    existing = result.scalar()
     if existing:
         return 0
 
@@ -177,5 +179,5 @@ def seed_demo_data_if_empty(db: Session) -> int:
         )
 
     db.add_all(seeded_records)
-    db.commit()
+    await db.commit()
     return len(seeded_records)

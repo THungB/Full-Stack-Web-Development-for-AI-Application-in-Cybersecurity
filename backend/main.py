@@ -62,12 +62,11 @@ def _start_telegram_bot():
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        seed_demo_data_if_empty(db)
-    finally:
-        db.close()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
+    async with SessionLocal() as db:
+        await seed_demo_data_if_empty(db)
 
     _start_telegram_bot()
 

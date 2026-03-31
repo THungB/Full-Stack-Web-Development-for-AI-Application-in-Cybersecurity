@@ -1,21 +1,25 @@
 import argparse
+import asyncio
 
+from sqlalchemy import delete
 from database.database import Base, SessionLocal, engine
 from database.schema import Scan
 from services.demo_seed import seed_demo_data_if_empty
 
 
-def main(reset: bool = False):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        if reset:
-            db.query(Scan).delete()
-            db.commit()
-        count = seed_demo_data_if_empty(db)
-        print(f"Seeded {count} demo records.")
-    finally:
-        db.close()
+async def main(reset: bool = False):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
+    async with SessionLocal() as db:
+        try:
+            if reset:
+                await db.execute(delete(Scan))
+                await db.commit()
+            count = await seed_demo_data_if_empty(db)
+            print(f"Seeded {count} demo records.")
+        finally:
+            pass  # SessionLocal as context manager handles closing
 
 
 if __name__ == "__main__":
@@ -26,4 +30,4 @@ if __name__ == "__main__":
         help="Clear existing records before seeding demo data.",
     )
     args = parser.parse_args()
-    main(reset=args.reset)
+    asyncio.run(main(reset=args.reset))
