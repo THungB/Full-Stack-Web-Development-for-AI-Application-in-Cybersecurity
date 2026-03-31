@@ -9,7 +9,14 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache2 import FastAPICache2
+from fastapi_cache2.backends.in_memory import InMemoryBackend
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from config import settings
 from database.database import Base, SessionLocal, engine
 from routes import history, scan, stats
 from routes import telegram
@@ -25,7 +32,7 @@ def _run_bot_in_thread():
     directly causes event loop conflicts. Creating a fresh event loop in a
     dedicated thread avoids this entirely.
     """
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    token = settings.telegram_bot_token or ""
     if not token:
         logger.warning(
             "TELEGRAM_BOT_TOKEN is not set. "
@@ -62,12 +69,16 @@ def _start_telegram_bot():
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        seed_demo_data_if_empty(db)
-    finally:
-        db.close()
+    # Initialize in-memory cache backend for /stats endpoint
+    FastAPICache2.init(InMemoryBackend())
+    
+    # Initialize async database tables at startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Seed demo data if database is empty
+    async with SessionLocal() as db:
+        await seed_demo_data_if_empty(db)
 
     _start_telegram_bot()
 
@@ -75,17 +86,22 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Spam Detection API",
-    version="1.0.0",
+    title=settings.app_title,
+    version=settings.app_version,
     lifespan=lifespan,
 )
 
+# Initialize rate limiter using settings
+limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_spec])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, lambda request, exc: {
+    "detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP.",
+})
+app.add_middleware(SlowAPIMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.cors_origins,
     allow_origin_regex=r"^https?://localhost(:\d+)?$|^https?://127\.0\.0\.1(:\d+)?$|^chrome-extension://.*$|^moz-extension://.*$",
     allow_credentials=True,
     allow_methods=["*"],

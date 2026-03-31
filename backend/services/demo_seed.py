@@ -1,17 +1,15 @@
 import os
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from database.schema import Scan
 
 
 def _is_seed_enabled() -> bool:
-    return os.getenv("APP_SEED_DEMO", "true").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }
+    return settings.app_seed_demo
 
 
 DEMO_DATA = [
@@ -148,11 +146,21 @@ DEMO_DATA = [
 ]
 
 
-def seed_demo_data_if_empty(db: Session) -> int:
+async def seed_demo_data_if_empty(db: AsyncSession) -> int:
+    """Asynchronously seed demo data if the database is empty.
+    
+    Args:
+        db: An async SQLAlchemy session.
+    
+    Returns:
+        The number of records seeded, or 0 if seeding was disabled or DB already had data.
+    """
     if not _is_seed_enabled():
         return 0
 
-    existing = db.query(Scan).count()
+    # Check if database already has records
+    result = await db.execute(select(func.count(Scan.id)))
+    existing = result.scalar() or 0
     if existing:
         return 0
 
@@ -177,5 +185,5 @@ def seed_demo_data_if_empty(db: Session) -> int:
         )
 
     db.add_all(seeded_records)
-    db.commit()
+    await db.commit()
     return len(seeded_records)
