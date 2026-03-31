@@ -146,11 +146,12 @@ DEMO_DATA = [
 ]
 
 
-def seed_demo_data_if_empty(db: Session) -> int:
+async def seed_demo_data_if_empty(db: AsyncSession) -> int:
     if not _is_seed_enabled():
         return 0
 
-    existing = db.query(Scan).count()
+    result = await db.execute(select(func.count(Scan.id)))
+    existing = result.scalar()
     if existing:
         return 0
 
