@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from fastapi_cache.decorator import cache
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +21,6 @@ BUCKETS = [
 
 
 @router.get("/stats")
-@cache(expire=settings.cache_ttl_seconds)  # Cache using TTL from settings
 async def get_stats(db: AsyncSession = Depends(get_db)):
 
     # FIX: Single SQL aggregation — no rows transferred to Python memory

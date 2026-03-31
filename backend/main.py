@@ -9,8 +9,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -69,8 +68,7 @@ def _start_telegram_bot():
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Initialize in-memory cache backend for /stats endpoint
-    FastAPICache.init(InMemoryBackend())
+    logger.info("Application startup...")
     
     # Initialize async database tables at startup
     async with engine.begin() as conn:
@@ -81,8 +79,11 @@ async def lifespan(_: FastAPI):
         await seed_demo_data_if_empty(db)
 
     _start_telegram_bot()
+    logger.info("Application startup complete")
 
     yield
+    
+    logger.info("Application shutting down...")
 
 
 app = FastAPI(
@@ -91,16 +92,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-from fastapi.responses import JSONResponse
-
-# Initialize rate limiter using settings
-limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_spec])
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
-    status_code=429,
-    content={"detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP."},
-))
-app.add_middleware(SlowAPIMiddleware)
+# Initialize rate limiter only if enabled
+if settings.rate_limit_enabled:
+    limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_spec])
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP."},
+    ))
+    app.add_middleware(SlowAPIMiddleware)
+    logger.info(f"Rate limiting enabled: {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds")
+else:
+    # Dummy limiter object so routes don't fail
+    class DummyLimiter:
+        def hit(self, request):
+            pass
+    app.state.limiter = DummyLimiter()
+    logger.info("Rate limiting disabled")
 
 app.add_middleware(
     CORSMiddleware,
