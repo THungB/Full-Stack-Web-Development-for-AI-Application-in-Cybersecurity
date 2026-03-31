@@ -1,18 +1,15 @@
 import os
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
+from config import settings
 from database.schema import Scan
 
 
 def _is_seed_enabled() -> bool:
-    return os.getenv("APP_SEED_DEMO", "true").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }
+    return settings.app_seed_demo
 
 
 DEMO_DATA = [
@@ -149,12 +146,11 @@ DEMO_DATA = [
 ]
 
 
-async def seed_demo_data_if_empty(db: AsyncSession) -> int:
+def seed_demo_data_if_empty(db: Session) -> int:
     if not _is_seed_enabled():
         return 0
 
-    result = await db.execute(select(func.count(Scan.id)))
-    existing = result.scalar()
+    existing = db.query(Scan).count()
     if existing:
         return 0
 
