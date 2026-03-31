@@ -33,6 +33,7 @@ class Settings(BaseSettings):
         env_file=BASE_DIR.parent / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        env_prefix="",
     )
     
     # --- Database Configuration ---
@@ -84,7 +85,7 @@ class Settings(BaseSettings):
     @property
     def rate_limit_spec(self) -> str:
         """Return rate limit specification in the format expected by slowapi."""
-        return f"{self.rate_limit_max_requests}/{self.rate_limit_window_seconds}s"
+        return f"{self.rate_limit_max_requests}/{self.rate_limit_window_seconds} second"
     
     # --- Cache Configuration ---
     cache_ttl_seconds: int = Field(
@@ -111,9 +112,7 @@ class Settings(BaseSettings):
         description="API version.",
     )
     
-    class Config:
-        """Pydantic config for Settings."""
-        env_prefix = ""
+
 
 
 # Global settings instance — use this throughout the application

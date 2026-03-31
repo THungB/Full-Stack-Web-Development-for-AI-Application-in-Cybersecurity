@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from fastapi_cache2.decorator import cache
+from fastapi_cache.decorator import cache
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

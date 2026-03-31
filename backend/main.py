@@ -9,8 +9,8 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_cache2 import FastAPICache2
-from fastapi_cache2.backends.in_memory import InMemoryBackend
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -70,7 +70,7 @@ def _start_telegram_bot():
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Initialize in-memory cache backend for /stats endpoint
-    FastAPICache2.init(InMemoryBackend())
+    FastAPICache.init(InMemoryBackend())
     
     # Initialize async database tables at startup
     async with engine.begin() as conn:
@@ -91,12 +91,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from fastapi.responses import JSONResponse
+
 # Initialize rate limiter using settings
 limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_spec])
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, lambda request, exc: {
-    "detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP.",
-})
+app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
+    status_code=429,
+    content={"detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP."},
+))
 app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
