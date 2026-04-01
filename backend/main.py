@@ -9,12 +9,6 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
-
 from config import settings
 from database.database import Base, SessionLocal, engine
 from routes import history, scan, stats
@@ -91,24 +85,6 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
-
-# Initialize rate limiter only if enabled
-if settings.rate_limit_enabled:
-    limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_spec])
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
-        status_code=429,
-        content={"detail": f"Rate limit exceeded. Maximum {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds per IP."},
-    ))
-    app.add_middleware(SlowAPIMiddleware)
-    logger.info(f"Rate limiting enabled: {settings.rate_limit_max_requests} requests per {settings.rate_limit_window_seconds} seconds")
-else:
-    # Dummy limiter object so routes don't fail
-    class DummyLimiter:
-        def hit(self, request):
-            pass
-    app.state.limiter = DummyLimiter()
-    logger.info("Rate limiting disabled")
 
 app.add_middleware(
     CORSMiddleware,

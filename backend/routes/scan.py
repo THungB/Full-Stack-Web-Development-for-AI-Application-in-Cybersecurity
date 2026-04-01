@@ -124,10 +124,6 @@ async def scan_message(
     payload: ScanRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    # Get limiter from app state and apply rate limit
-    limiter = request.app.state.limiter
-    limiter.hit(request)
-    
     try:
         prediction = await asyncio.to_thread(predict, payload.message)
         record = await create_scan_record(
@@ -150,10 +146,6 @@ async def scan_ocr(
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db)
 ):
-    # Get limiter from app state and apply rate limit
-    limiter = request.app.state.limiter
-    limiter.hit(request)
-    
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400,
@@ -218,10 +210,6 @@ async def scan_batch(
     default_source: str | None = Form(default="batch"),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get limiter from app state and apply rate limit
-    limiter = request.app.state.limiter
-    limiter.hit(request)
-    
     file_name = (file.filename or "").lower()
     if file.content_type not in ALLOWED_BATCH_TYPES and not file_name.endswith(".csv"):
         raise HTTPException(
