@@ -1,13 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #11203b;
-  background: #f6f3eb;
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #dae2fd;
+  background: #0b1326;
+  font-family: "Inter", "Segoe UI", sans-serif;
 }
 
 html {
@@ -18,8 +18,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8f9fa;
-  color: #11203b;
+  background:
+    radial-gradient(circle at top right, rgba(67, 85, 185, 0.18), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(74, 225, 118, 0.08), transparent 28%),
+    linear-gradient(180deg, #0b1326 0%, #091120 100%);
+  color: #dae2fd;
 }
 
 * {
@@ -38,55 +41,73 @@ textarea {
 }
 
 ::selection {
-  background: rgba(249, 115, 22, 0.2);
+  background: rgba(186, 195, 255, 0.24);
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    @apply bg-shell text-copy;
+  }
+
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display text-ink;
+    @apply font-display text-copy;
   }
 
   p {
-    @apply text-steel;
+    @apply text-muted;
+  }
+
+  a {
+    @apply text-inherit no-underline;
   }
 }
 
 @layer components {
-  .panel {
-    @apply rounded-[28px] border border-white/70 bg-white/85 shadow-panel backdrop-blur;
+  .app-panel {
+    @apply rounded-3xl border border-line/15 bg-panel/90 shadow-panel backdrop-blur-xl;
   }
 
-  .soft-panel {
-    @apply rounded-3xl border border-ink/10 bg-[#fffaf0]/90;
+  .app-panel-soft {
+    @apply rounded-3xl border border-line/15 bg-surface/85 shadow-panel backdrop-blur-xl;
   }
 
-  .field {
-    @apply w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition duration-200 placeholder:text-steel/60 focus:border-signal/40 focus:ring-4 focus:ring-signal/10;
+  .glass-panel {
+    @apply bg-elevated/70 backdrop-blur-[20px];
   }
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-signal disabled:cursor-not-allowed disabled:opacity-60;
+  .field-dark {
+    @apply w-full rounded-2xl border border-line/20 bg-elevated-strong/90 px-4 py-3 text-sm text-copy outline-none transition placeholder:text-muted/55 focus:border-primary/25 focus:ring-0;
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-signal/40 hover:text-signal;
+  .btn-primary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-strong px-5 py-3 text-sm font-semibold text-copy transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  .chip {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  .btn-secondary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-line/20 bg-elevated/90 px-5 py-3 text-sm font-semibold text-copy transition hover:bg-elevated-strong disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  .table-cell {
-    @apply border-b border-ink/10 px-4 py-4 align-top text-sm text-ink;
+  .status-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-line/20 bg-elevated px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
+  }
+
+  .metric-card {
+    @apply relative overflow-hidden rounded-3xl border border-line/15 bg-surface/85 p-5 shadow-panel backdrop-blur-xl transition hover:bg-elevated/90;
+  }
+
+  .table-row-divider {
+    @apply border-b border-line/10;
   }
 
   .grid-overlay {
     background-image:
-      linear-gradient(rgba(17, 32, 59, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17, 32, 59, 0.05) 1px, transparent 1px);
+      linear-gradient(rgba(218, 226, 253, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(218, 226, 253, 0.04) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 }

@@ -3,7 +3,6 @@ import { useToast } from "../components/ToastProvider";
 import ActivityChart from "../components/Charts/ActivityChart";
 import ConfidenceChart from "../components/Charts/ConfidenceChart";
 import SpamRatioChart from "../components/Charts/SpamRatioChart";
-import SectionHeading from "../components/SectionHeading";
 import SummaryCards from "../components/SummaryCards";
 import SystemStatus from "../components/SystemStatus";
 import { getStats } from "../services/api";
@@ -64,31 +63,50 @@ export default function Dashboard() {
     };
   }, [showToast]);
 
+  const totalScans = stats.spam_count + stats.ham_count;
+  const highConfidenceBucket = stats.buckets.find((bucket) =>
+    String(bucket.range).includes("80-100"),
+  );
+  const highConfidenceSignals =
+    (highConfidenceBucket?.spam ?? 0) + (highConfidenceBucket?.ham ?? 0);
+  const highConfidenceShare = totalScans
+    ? highConfidenceSignals / totalScans
+    : 0;
+
   return (
     <div className="space-y-6">
-      <section className="panel overflow-hidden p-6 sm:p-8">
-        <SectionHeading
-          eyebrow="Threat Overview"
-          title="One dashboard for every spam signal"
-          description="Track spam-to-ham ratio, daily model activity, and confidence distribution with a front-end tuned for your Assignment 3 architecture."
-        />
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="app-panel p-6 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-copy/45">
+            Threat Overview
+          </p>
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-copy sm:text-5xl">
+            One dashboard for every spam signal
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-8 text-muted">
+            Real-time monitoring across website, Telegram, OCR, extension, and
+            batch workflows. This React dashboard mirrors the new shell while
+            staying truthful to the live API data available today.
+          </p>
+        </div>
+        <div className="xl:pl-2">
+          <SystemStatus />
+        </div>
       </section>
 
-      <SystemStatus />
-
       {error ? (
-        <div className="rounded-[28px] border border-danger/20 bg-white/90 p-5 text-danger">
+        <div className="app-panel border border-threat/20 bg-threat/10 p-5 text-threat">
           <p className="font-semibold">Dashboard data could not be loaded.</p>
-          <p className="mt-2 text-sm text-danger/80">
+          <p className="mt-2 text-sm text-copy/75">
             Check that FastAPI is running and that `VITE_API_BASE_URL` points to
             the backend.
           </p>
         </div>
       ) : null}
 
-      <SummaryCards stats={stats} />
+      <SummaryCards stats={stats} highConfidenceShare={highConfidenceShare} />
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <SpamRatioChart
           spamCount={stats.spam_count}
           hamCount={stats.ham_count}
@@ -99,8 +117,8 @@ export default function Dashboard() {
       <ConfidenceChart data={stats.buckets} />
 
       {loading ? (
-        <div className="panel p-5">
-          <p className="text-sm font-medium text-steel">
+        <div className="app-panel p-5">
+          <p className="text-sm font-medium text-muted">
             Loading the latest chart data from the backend...
           </p>
         </div>

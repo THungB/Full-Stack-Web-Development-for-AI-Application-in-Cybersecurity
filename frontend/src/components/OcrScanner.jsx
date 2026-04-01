@@ -1,4 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  BoundingBox,
+  SpinnerGap,
+  UploadSimple,
+} from "@phosphor-icons/react";
 import { scanOcr } from "../services/api";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -26,9 +31,7 @@ async function captureScreenAsBlob() {
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    return await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/png", 1),
-    );
+    return await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
   } finally {
     stream.getTracks().forEach((track) => track.stop());
   }
@@ -39,6 +42,24 @@ export default function OcrScanner({ onResult, onError }) {
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [extractedText, setExtractedText] = useState("");
+
+  useEffect(
+    () => () => {
+      if (preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
+    },
+    [preview],
+  );
+
+  const updatePreview = (nextPreview) => {
+    setPreview((current) => {
+      if (current.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return nextPreview;
+    });
+  };
 
   const submitImage = async (imageData, fileName = "capture.png") => {
     setLoading(true);
@@ -71,7 +92,7 @@ export default function OcrScanner({ onResult, onError }) {
       return;
     }
 
-    setPreview(URL.createObjectURL(file));
+    updatePreview(URL.createObjectURL(file));
     await submitImage(file, file.name);
   };
 
@@ -83,7 +104,7 @@ export default function OcrScanner({ onResult, onError }) {
         throw new Error("Unable to capture screen image.");
       }
 
-      setPreview(URL.createObjectURL(blob));
+      updatePreview(URL.createObjectURL(blob));
       await submitImage(blob);
     } catch (error) {
       onError?.(error);
@@ -91,34 +112,33 @@ export default function OcrScanner({ onResult, onError }) {
   };
 
   return (
-    <div className="panel p-5 sm:p-6">
+    <div className="app-panel-soft p-5 sm:p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-medium text-steel">OCR Scanner</p>
-            <h3 className="mt-2 text-2xl font-bold">
-              Extract text from screenshots
-            </h3>
-            <p className="mt-2 text-sm text-steel">
-              Upload a screenshot or capture your screen, then send the extracted
-              text to the spam detector.
+            <p className="text-lg font-bold text-copy">OCR Scanner</p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Upload a screenshot or capture your screen, then pass the extracted
+              text into the live detector.
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="btn-secondary w-full sm:w-auto"
+              className="btn-secondary-dark w-full rounded-xl sm:w-auto"
               disabled={loading}
             >
+              <UploadSimple size={16} />
               Upload Image
             </button>
             <button
               type="button"
               onClick={handleScreenCapture}
-              className="btn-primary w-full sm:w-auto"
+              className="btn-primary-dark w-full rounded-xl sm:w-auto"
               disabled={loading}
             >
+              <BoundingBox size={16} />
               Capture Screen
             </button>
           </div>
@@ -133,9 +153,9 @@ export default function OcrScanner({ onResult, onError }) {
         />
 
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[24px] border border-dashed border-ink/12 bg-white/60 p-4">
-            <p className="text-sm font-semibold text-ink">Image preview</p>
-            <div className="mt-4 flex min-h-[240px] items-center justify-center overflow-hidden rounded-[20px] bg-slate-50">
+          <div className="rounded-[24px] border border-line/15 bg-surface/60 p-4">
+            <p className="text-sm font-semibold text-copy">Image preview</p>
+            <div className="mt-4 flex min-h-[260px] items-center justify-center overflow-hidden rounded-[20px] bg-elevated-strong/70">
               {preview ? (
                 <img
                   src={preview}
@@ -143,7 +163,7 @@ export default function OcrScanner({ onResult, onError }) {
                   className="max-h-[340px] w-full object-contain"
                 />
               ) : (
-                <p className="max-w-xs text-center text-sm text-steel">
+                <p className="max-w-xs text-center text-sm text-muted">
                   No image selected yet. The preview appears here after upload or
                   capture.
                 </p>
@@ -151,19 +171,20 @@ export default function OcrScanner({ onResult, onError }) {
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-ink/10 bg-white p-4">
-            <p className="text-sm font-semibold text-ink">OCR extraction</p>
-            <div className="mt-4 min-h-[200px] rounded-[20px] bg-slate-50 p-4 sm:min-h-[240px]">
+          <div className="rounded-[24px] border border-line/15 bg-surface/60 p-4">
+            <p className="text-sm font-semibold text-copy">OCR extraction</p>
+            <div className="mt-4 min-h-[200px] rounded-[20px] bg-elevated-strong/70 p-4 sm:min-h-[240px]">
               {loading ? (
-                <p className="text-sm font-medium text-signal">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <SpinnerGap size={18} className="animate-spin" />
                   Extracting text and scanning image...
-                </p>
+                </div>
               ) : extractedText ? (
-                <p className="whitespace-pre-wrap text-sm leading-7 text-ink">
+                <p className="whitespace-pre-wrap text-sm leading-7 text-copy">
                   {extractedText}
                 </p>
               ) : (
-                <p className="text-sm text-steel">
+                <p className="text-sm text-muted">
                   Extracted text will appear here once OCR completes.
                 </p>
               )}

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>History Ledger - Spam Sentinel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#31394d",
+              "secondary": "#4ae176",
+              "error-container": "#93000a",
+              "on-tertiary-fixed-variant": "#930013",
+              "inverse-surface": "#dae2fd",
+              "on-tertiary-fixed": "#410004",
+              "on-tertiary-container": "#ffc5c0",
+              "inverse-primary": "#4355b9",
+              "secondary-fixed-dim": "#4ae176",
+              "outline-variant": "#454652",
+              "surface-tint": "#bac3ff",
+              "error": "#ffb4ab",
+              "secondary-container": "#00b954",
+              "primary-fixed-dim": "#bac3ff",
+              "on-background": "#dae2fd",
+              "on-surface": "#dae2fd",
+              "primary": "#bac3ff",
+              "background": "#0b1326",
+              "on-primary": "#08218a",
+              "on-error-container": "#ffdad6",
+              "on-error": "#690005",
+              "tertiary": "#ffb3ad",
+              "surface-container-high": "#222a3d",
+              "tertiary-container": "#b41521",
+              "surface-container-highest": "#2d3449",
+              "on-surface-variant": "#c5c5d4",
+              "tertiary-fixed-dim": "#ffb3ad",
+              "tertiary-fixed": "#ffdad7",
+              "surface-variant": "#2d3449",
+              "surface-container-lowest": "#060e20",
+              "primary-container": "#3f51b5",
+              "outline": "#8f909e",
+              "surface": "#0b1326",
+              "on-tertiary": "#68000a",
+              "inverse-on-surface": "#283044",
+              "on-primary-container": "#cacfff",
+              "surface-container-low": "#131b2e",
+              "on-secondary-container": "#004119",
+              "primary-fixed": "#dee0ff",
+              "on-secondary": "#003915",
+              "on-secondary-fixed-variant": "#005321",
+              "surface-dim": "#0b1326",
+              "on-primary-fixed": "#00105c",
+              "secondary-fixed": "#6bff8f",
+              "surface-container": "#171f33",
+              "on-secondary-fixed": "#002109",
+              "on-primary-fixed-variant": "#293ca0"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0b1326;
+            color: #dae2fd;
+        }
+    </style>
+</head>
+<body class="font-body selection:bg-primary/30">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0b1326]/80 backdrop-blur-xl border-b border-[#bac3ff]/15 flex justify-between items-center px-6 py-3 w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#bac3ff] font-headline">Spam Sentinel</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="font-['Manrope'] tracking-tight text-[#dae2fd]/60 hover:text-[#dae2fd] transition-colors active:scale-95 duration-200" href="#">Dashboard</a>
+<a class="font-['Manrope'] tracking-tight text-[#dae2fd]/60 hover:text-[#dae2fd] transition-colors active:scale-95 duration-200" href="#">Scan</a>
+<a class="font-['Manrope'] tracking-tight text-[#bac3ff] border-b-2 border-[#3f51b5] pb-1 active:scale-95 duration-200" href="#">History</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:block relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-sm">search</span>
+<input class="bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-1.5 text-sm focus:ring-1 focus:ring-primary w-64" placeholder="Search records..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-[#bac3ff] hover:bg-[#3f51b5]/10 p-2 rounded-full transition-all">notifications</button>
+<button class="material-symbols-outlined text-[#bac3ff] hover:bg-[#3f51b5]/10 p-2 rounded-full transition-all">settings</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-surface-container-high">
+<img alt="User Security Profile" data-alt="User profile avatar with technical aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQA7Fk5aavj26J1aKxTBpaHSm4OxhrkIwf24mbuE5sOmLmuhS8R2tjW512l3ez2SskoektZFebJBPRK6qHI9jkyyYQkXZb78tWFFVUFAQHs36w0Rgt1wgWSZ7_66787P1dBnCQZkeJDCvdiob9ncDrAZIG2JYYKlL3lTLCdwQk-Rxp8pOvgsqha8e0-nWC9yqBsBmX3NxffZguCk__-YOOKLMxIy9dCLSZu76EI_ptHxXiNgRPbv29NjYrxfMqS0j7ia11LZom-h0"/>
+</div>
+</div>
+</nav>
+<!-- Sidebar (Hidden on mobile) -->
+<aside class="hidden lg:flex flex-col h-screen w-64 fixed left-0 top-0 bg-[#0b1326] py-8 z-40 border-r border-outline-variant/15">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div>
+<h2 class="font-['Manrope'] font-black text-[#bac3ff] leading-none">Spam Sentinel</h2>
+<span class="text-[10px] uppercase tracking-widest text-secondary font-bold">System Active</span>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="text-[#dae2fd]/50 py-3 px-4 flex items-center gap-3 hover:bg-[#3f51b5]/10 rounded-lg font-['Inter'] text-sm font-medium transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="text-[#dae2fd]/50 py-3 px-4 flex items-center gap-3 hover:bg-[#3f51b5]/10 rounded-lg font-['Inter'] text-sm font-medium transition-all" href="#">
+<span class="material-symbols-outlined">document_scanner</span>
+                Scan
+            </a>
+<a class="bg-[#3f51b5]/20 text-[#bac3ff] border-l-4 border-[#3f51b5] py-3 px-4 flex items-center gap-3 font-['Inter'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+                History
+            </a>
+</nav>
+<div class="px-3 pt-4 border-t border-outline-variant/15 space-y-1">
+<a class="text-[#dae2fd]/50 py-3 px-4 flex items-center gap-3 hover:bg-[#3f51b5]/10 rounded-lg font-['Inter'] text-sm font-medium transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+<a class="text-[#dae2fd]/50 py-3 px-4 flex items-center gap-3 hover:bg-[#3f51b5]/10 rounded-lg font-['Inter'] text-sm font-medium transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="pt-24 pb-12 lg:pl-72 px-6 min-h-screen">
+<!-- Header Section -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+<div class="space-y-2">
+<h1 class="text-4xl font-headline font-extrabold tracking-tight text-on-surface">Review and export scanned records</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl font-body">Complete historical ledger of all intercepted traffic and system validations.</p>
+</div>
+<button class="flex items-center gap-2 bg-primary-container text-on-primary-container px-6 py-3 rounded-lg font-semibold hover:bg-primary-container/80 transition-all active:scale-95 shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined text-sm">download</span>
+                Export CSV
+            </button>
+</header>
+<!-- Stats Overview (Bento Style) -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Current Page</p>
+<p class="text-3xl font-headline font-black text-on-surface">1 / 48</p>
+<div class="mt-4 h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/12"></div>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10 relative overflow-hidden">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Visible Spam</p>
+<p class="text-3xl font-headline font-black text-tertiary">342</p>
+<div class="absolute -right-2 -bottom-2 opacity-5">
+<span class="material-symbols-outlined text-7xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10 relative overflow-hidden">
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">Visible Ham</p>
+<p class="text-3xl font-headline font-black text-secondary">1,029</p>
+<div class="absolute -right-2 -bottom-2 opacity-5">
+<span class="material-symbols-outlined text-7xl" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10 flex items-center justify-between">
+<div>
+<p class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">CSV Ready</p>
+<p class="text-lg font-headline font-bold text-secondary flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                        Syncing
+                    </p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">cloud_done</span>
+</div>
+</section>
+<!-- Filter Controls -->
+<div class="bg-surface-container-high/50 backdrop-blur-md p-4 rounded-t-xl flex flex-wrap items-center justify-between gap-4 border-x border-t border-outline-variant/10">
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative">
+<select class="bg-surface-container-highest border-none text-sm text-on-surface py-2 pl-4 pr-10 rounded-lg appearance-none cursor-pointer focus:ring-1 focus:ring-primary min-w-[120px]">
+<option>All Results</option>
+<option>Spam Only</option>
+<option>Ham Only</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="bg-surface-container-highest border-none text-sm text-on-surface py-2 pl-4 pr-10 rounded-lg appearance-none cursor-pointer focus:ring-1 focus:ring-primary min-w-[120px]">
+<option>All Sources</option>
+<option>Batch</option>
+<option>Website</option>
+<option>Telegram</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="h-6 w-px bg-outline-variant/30 hidden sm:block"></div>
+<div class="relative">
+<select class="bg-surface-container-highest border-none text-sm text-on-surface py-2 pl-4 pr-10 rounded-lg appearance-none cursor-pointer focus:ring-1 focus:ring-primary min-w-[140px]">
+<option>Newest First</option>
+<option>Oldest First</option>
+<option>Confidence (High)</option>
+<option>Confidence (Low)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">sort</span>
+</div>
+</div>
+<div class="text-xs font-bold text-on-surface-variant uppercase tracking-tighter">
+                Showing 1-15 of 1,371 entries
+            </div>
+</div>
+<!-- Detailed Table -->
+<div class="overflow-x-auto bg-surface-container-low rounded-b-xl border-x border-b border-outline-variant/10 shadow-2xl">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container/30 text-on-surface-variant text-[11px] font-bold uppercase tracking-widest border-b border-outline-variant/15">
+<th class="px-6 py-4">Timestamp</th>
+<th class="px-6 py-4">Source</th>
+<th class="px-6 py-4">Message Preview</th>
+<th class="px-6 py-4">Result</th>
+<th class="px-6 py-4">Confidence</th>
+<th class="px-6 py-4 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors group">
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="text-on-surface text-sm font-medium">Oct 24, 14:22:10</span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-primary/20">Telegram</span>
+</td>
+<td class="px-6 py-5 max-w-xs truncate">
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant text-sm truncate">Exclusive offer! Click here to claim your $500 reward...</span>
+<button class="text-primary text-[10px] font-bold uppercase hover:underline opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Expand</button>
+</div>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-tertiary-container/30 text-tertiary text-xs font-bold px-3 py-1 rounded-full border border-tertiary/20 flex items-center gap-1.5 w-fit">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                                SPAM
+                            </span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<span class="text-sm font-bold text-on-surface">99.8%</span>
+<div class="w-12 h-1 bg-surface-container-highest rounded-full">
+<div class="h-full bg-tertiary w-full rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-outline hover:text-error transition-colors p-1">delete</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors group">
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="text-on-surface text-sm font-medium">Oct 24, 14:18:04</span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-outline-variant/30">Website</span>
+</td>
+<td class="px-6 py-5 max-w-xs truncate">
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant text-sm truncate">Please find the attached invoice for last month's subscription...</span>
+<button class="text-primary text-[10px] font-bold uppercase hover:underline opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Expand</button>
+</div>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-secondary-container/30 text-secondary text-xs font-bold px-3 py-1 rounded-full border border-secondary/20 flex items-center gap-1.5 w-fit">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                HAM
+                            </span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<span class="text-sm font-bold text-on-surface">94.2%</span>
+<div class="w-12 h-1 bg-surface-container-highest rounded-full">
+<div class="h-full bg-secondary w-11/12 rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-outline hover:text-error transition-colors p-1">delete</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors group">
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="text-on-surface text-sm font-medium">Oct 24, 13:55:22</span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-primary/20">Batch</span>
+</td>
+<td class="px-6 py-5 max-w-xs truncate">
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant text-sm truncate">System Alert: Your account password expires in 2 days. Reset...</span>
+<button class="text-primary text-[10px] font-bold uppercase hover:underline opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Expand</button>
+</div>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-secondary-container/30 text-secondary text-xs font-bold px-3 py-1 rounded-full border border-secondary/20 flex items-center gap-1.5 w-fit">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                HAM
+                            </span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<span class="text-sm font-bold text-on-surface">88.5%</span>
+<div class="w-12 h-1 bg-surface-container-highest rounded-full">
+<div class="h-full bg-secondary w-4/5 rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-outline hover:text-error transition-colors p-1">delete</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-highest/30 transition-colors group">
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="text-on-surface text-sm font-medium">Oct 24, 13:42:01</span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase border border-primary/20">Telegram</span>
+</td>
+<td class="px-6 py-5 max-w-xs truncate">
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant text-sm truncate">You have won a lottery prize of 1 BTC. Connect wallet now!</span>
+<button class="text-primary text-[10px] font-bold uppercase hover:underline opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Expand</button>
+</div>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<span class="bg-tertiary-container/30 text-tertiary text-xs font-bold px-3 py-1 rounded-full border border-tertiary/20 flex items-center gap-1.5 w-fit">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                                SPAM
+                            </span>
+</td>
+<td class="px-6 py-5 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<span class="text-sm font-bold text-on-surface">100.0%</span>
+<div class="w-12 h-1 bg-surface-container-highest rounded-full">
+<div class="h-full bg-tertiary w-full rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-outline hover:text-error transition-colors p-1">delete</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+<div class="flex items-center gap-2">
+<span class="text-xs text-on-surface-variant font-bold uppercase tracking-widest">Rows per page:</span>
+<select class="bg-surface-container-low border border-outline-variant/20 rounded text-xs px-2 py-1">
+<option>15</option>
+<option>50</option>
+<option>100</option>
+</select>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-highest text-on-surface-variant disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-on-primary-container font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-highest text-on-surface font-medium">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-highest text-on-surface font-medium">3</button>
+<span class="px-2 text-on-surface-variant">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-highest text-on-surface font-medium">48</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-highest text-on-surface">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Nav for Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#0b1326] flex justify-around items-center py-4 border-t border-outline-variant/10 z-50">
+<a class="flex flex-col items-center gap-1 text-[#dae2fd]/50" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#dae2fd]/50" href="#">
+<span class="material-symbols-outlined">document_scanner</span>
+<span class="text-[10px] font-bold uppercase">Scan</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="text-[10px] font-bold uppercase">History</span>
+</a>
+</nav>
+</body></html>

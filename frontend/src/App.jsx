@@ -11,8 +11,8 @@ export default function App() {
     <AppShell>
       <Suspense
         fallback={
-          <div className="panel p-5">
-            <p className="text-sm font-medium text-steel">
+          <div className="app-panel p-5">
+            <p className="text-sm font-medium text-muted">
               Loading interface...
             </p>
           </div>

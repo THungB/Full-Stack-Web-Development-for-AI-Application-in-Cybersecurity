@@ -1,11 +1,29 @@
 import { Fragment } from "react";
 
-export function formatPercent(value) {
-  return `${((value || 0) * 100).toFixed(1)}%`;
+export function formatPercent(value, maximumFractionDigits = 1) {
+  return new Intl.NumberFormat("en-US", {
+    style: "percent",
+    maximumFractionDigits,
+    minimumFractionDigits: maximumFractionDigits,
+  }).format(value || 0);
 }
 
 export function formatConfidence(value) {
-  return `${((value || 0) * 100).toFixed(1)}%`;
+  return formatPercent(value, 1);
+}
+
+export function formatInteger(value) {
+  return new Intl.NumberFormat("en-US").format(Number(value || 0));
+}
+
+export function formatCompactNumber(value) {
+  const numeric = Number(value || 0);
+  if (numeric < 1000) return formatInteger(numeric);
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(numeric);
 }
 
 export function formatDateTime(value) {
@@ -19,6 +37,31 @@ export function formatDateTime(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+export function formatShortDate(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+export function formatSourceLabel(value) {
+  const normalized = String(value || "website").toLowerCase();
+  const labels = {
+    website: "Website",
+    telegram: "Telegram",
+    extension: "Extension",
+    ocr: "OCR",
+    batch: "Batch",
+  };
+
+  return labels[normalized] || "Website";
 }
 
 export function truncateText(value, maxLength = 100) {
@@ -54,7 +97,7 @@ export function highlightKeywords(text, keywords = []) {
     return (
       <mark
         key={`${part}-${index}`}
-        className="rounded-md bg-signal/20 px-1 py-0.5 text-ink"
+        className="rounded-md bg-threat/20 px-1 py-0.5 text-copy"
       >
         {part}
       </mark>

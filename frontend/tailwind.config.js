@@ -4,24 +4,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#11203b",
-        mist: "#f6f3eb",
-        signal: "#f97316",
-        safe: "#0f766e",
-        danger: "#e11d48",
-        steel: "#5f6f8c",
-        cloud: "#fffdf8"
+        shell: "#0b1326",
+        surface: "#131b2e",
+        panel: "#171f33",
+        elevated: "#222a3d",
+        "elevated-strong": "#2d3449",
+        line: "#454652",
+        copy: "#dae2fd",
+        muted: "#9ea8c7",
+        primary: "#bac3ff",
+        "primary-strong": "#4355b9",
+        "primary-soft": "#293ca0",
+        safe: "#4ae176",
+        "safe-strong": "#00b954",
+        threat: "#ffb3ad",
+        "threat-strong": "#b41521",
+        warning: "#ffd66b",
+        ink: "#08101f"
       },
       boxShadow: {
-        panel: "0 24px 60px rgba(17, 32, 59, 0.12)"
+        panel: "0 28px 70px rgba(3, 7, 18, 0.34)",
+        glow: "0 0 28px rgba(74, 225, 118, 0.14)",
+        "glow-primary": "0 0 30px rgba(186, 195, 255, 0.16)"
       },
       backgroundImage: {
-        "hero-radial":
-          "radial-gradient(circle at top left, rgba(249,115,22,0.22), transparent 34%), radial-gradient(circle at top right, rgba(14,165,233,0.18), transparent 28%), linear-gradient(180deg, #fffdf8 0%, #f6f3eb 100%)"
+        "shell-radial":
+          "radial-gradient(circle at top right, rgba(67, 85, 185, 0.18), transparent 24%), radial-gradient(circle at bottom left, rgba(74, 225, 118, 0.09), transparent 28%), linear-gradient(180deg, #0b1326 0%, #091120 100%)"
       },
       fontFamily: {
-        display: ['"Geist"', '"Segoe UI"', "sans-serif"],
-        body: ['"IBM Plex Sans"', '"Segoe UI"', "sans-serif"]
+        display: ['"Manrope"', '"Segoe UI"', "sans-serif"],
+        body: ['"Inter"', '"Segoe UI"', "sans-serif"]
       },
     }
   },

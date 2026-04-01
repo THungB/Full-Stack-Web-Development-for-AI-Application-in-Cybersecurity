@@ -12,7 +12,9 @@ describe("ScanForm", () => {
     expect(
       screen.getByText("Message is too short (min 10 characters)."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /scan message/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /initiate analysis/i }),
+    ).toBeDisabled();
   });
 
   it("submits a trimmed website message", async () => {
@@ -22,7 +24,7 @@ describe("ScanForm", () => {
     fireEvent.change(screen.getByLabelText(/message/i), {
       target: { value: "   suspicious offer link   " },
     });
-    fireEvent.submit(screen.getByRole("button", { name: /scan message/i }));
+    fireEvent.click(screen.getByRole("button", { name: /initiate analysis/i }));
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({

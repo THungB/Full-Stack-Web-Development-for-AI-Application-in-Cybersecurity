@@ -1,4 +1,9 @@
 import { useEffect, useState } from "react";
+import {
+  Broom,
+  RocketLaunch,
+  TextAlignLeft,
+} from "@phosphor-icons/react";
 
 const MAX_LENGTH = 2000;
 const MIN_LENGTH = 10;
@@ -40,15 +45,18 @@ export default function ScanForm({ onSubmit }) {
   };
 
   return (
-    <form className="panel p-5 sm:p-6" onSubmit={handleSubmit}>
+    <form className="app-panel-soft p-5 sm:p-6" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium text-steel">Manual Scan</p>
-            <h3 className="mt-2 text-2xl font-bold">Paste a message to inspect</h3>
+            <p className="text-lg font-bold text-copy">Manual Scan</p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Paste suspicious content to run live heuristics against the spam classifier.
+            </p>
           </div>
-          <span className="text-xs font-medium text-steel">
-            {message.length} / {MAX_LENGTH}
+          <span className="status-chip">
+            <TextAlignLeft size={14} />
+            Markdown supported
           </span>
         </div>
 
@@ -57,8 +65,8 @@ export default function ScanForm({ onSubmit }) {
         </label>
         <textarea
           id="message"
-          className="field min-h-[220px] resize-y"
-          placeholder="Paste suspicious email, SMS, or chat content here..."
+          className="field-dark min-h-[320px] resize-y rounded-[24px] p-5"
+          placeholder="Paste your message content here for real-time analysis..."
           value={message}
           onChange={(event) => setMessage(event.target.value.slice(0, MAX_LENGTH))}
           disabled={loading}
@@ -67,21 +75,32 @@ export default function ScanForm({ onSubmit }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {error ? (
-              <p className="text-sm font-medium text-danger">{error}</p>
+              <p className="text-sm font-medium text-threat">{error}</p>
             ) : (
-              <p className="text-sm text-steel">
-                The model checks the message and returns confidence plus flagged
-                keywords.
+              <p className="text-sm text-muted">
+                Character count: {message.length} / {MAX_LENGTH}. Source will be stored as Website.
               </p>
             )}
           </div>
-          <button
-            type="submit"
-            className="btn-primary min-w-[180px] w-full sm:w-auto"
-            disabled={loading || Boolean(error) || !message.trim()}
-          >
-            {loading ? "Scanning..." : "Scan Message"}
-          </button>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <button
+              type="button"
+              className="btn-secondary-dark min-w-[150px] rounded-xl"
+              onClick={() => setMessage("")}
+              disabled={loading || !message.length}
+            >
+              <Broom size={16} />
+              Clear
+            </button>
+            <button
+              type="submit"
+              className="btn-primary-dark min-w-[180px] rounded-xl"
+              disabled={loading || Boolean(error) || !message.trim()}
+            >
+              <RocketLaunch size={16} weight="bold" />
+              {loading ? "Scanning..." : "Initiate Analysis"}
+            </button>
+          </div>
         </div>
       </div>
     </form>

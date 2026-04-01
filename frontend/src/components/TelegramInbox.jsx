@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { TelegramLogo } from "@phosphor-icons/react";
-import { deleteTelegramRecord, getTelegramMessages, scanMessage } from "../services/api";
+import {
+  ArrowClockwise,
+  CaretLeft,
+  CaretRight,
+  TelegramLogo,
+  Trash,
+} from "@phosphor-icons/react";
+import {
+  deleteTelegramRecord,
+  getTelegramMessages,
+  scanMessage,
+} from "../services/api";
 import { formatConfidence, formatDateTime, truncateText } from "../utils/format";
 import StatusBadge from "./StatusBadge";
 
@@ -21,7 +31,7 @@ export default function TelegramInbox({ showToast }) {
   const [rescanResults, setRescanResults] = useState({});
 
   const limit = 20;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const fetchMessages = useCallback(async () => {
     setLoading(true);
@@ -52,7 +62,7 @@ export default function TelegramInbox({ showToast }) {
     try {
       await deleteTelegramRecord(id);
       setRecords((current) => current.filter((record) => record.id !== id));
-      setTotal((current) => current - 1);
+      setTotal((current) => Math.max(0, current - 1));
       showToast({
         tone: "success",
         title: "Record deleted",
@@ -100,14 +110,14 @@ export default function TelegramInbox({ showToast }) {
 
   if (!loading && records.length === 0) {
     return (
-      <section className="panel p-12 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50">
-          <TelegramLogo size={24} weight="light" className="text-steel" />
+      <section className="app-panel p-12 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-elevated text-copy/70">
+          <TelegramLogo size={24} weight="fill" />
         </div>
-        <h3 className="mt-4 text-lg font-semibold text-ink">
+        <h3 className="mt-4 text-lg font-semibold text-copy">
           No Telegram messages yet
         </h3>
-        <p className="mt-2 text-sm text-steel">
+        <p className="mt-2 text-sm text-muted">
           Send a message to your Telegram bot and it will appear here for
           review.
         </p>
@@ -117,7 +127,7 @@ export default function TelegramInbox({ showToast }) {
 
   return (
     <div className="space-y-4">
-      <section className="panel p-4 sm:p-5">
+      <section className="app-panel p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((f) => (
@@ -126,8 +136,8 @@ export default function TelegramInbox({ showToast }) {
                 type="button"
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                   filter === f.value
-                    ? "bg-ink text-white"
-                    : "bg-white text-ink hover:text-signal"
+                    ? "bg-primary-strong text-copy"
+                    : "bg-elevated text-copy/75 hover:text-copy"
                 }`}
                 onClick={() => handleFilterChange(f.value)}
               >
@@ -135,18 +145,18 @@ export default function TelegramInbox({ showToast }) {
               </button>
             ))}
           </div>
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-steel">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-copy/45">
             {total} message{total !== 1 ? "s" : ""}
           </span>
         </div>
       </section>
 
       {loading ? (
-        <section className="panel p-12 text-center">
-          <p className="text-sm text-steel">Loading messages...</p>
+        <section className="app-panel p-12 text-center">
+          <p className="text-sm text-muted">Loading messages...</p>
         </section>
       ) : (
-        <div className="panel overflow-hidden">
+        <div className="app-panel overflow-hidden">
           <div className="grid gap-4 p-4 md:hidden">
             {records.map((record) => {
               const expanded = expandedRows[record.id];
@@ -156,61 +166,59 @@ export default function TelegramInbox({ showToast }) {
               return (
                 <article
                   key={record.id}
-                  className="rounded-[24px] border border-ink/10 bg-white p-4"
+                  className="rounded-[24px] border border-line/10 bg-surface/70 p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <StatusBadge value={rescanned ? rescanned.result : record.result} />
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-steel">
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-copy/45">
                       {formatDateTime(record.timestamp)}
                     </span>
                   </div>
 
-                  {record.username && (
-                    <p className="mt-2 text-xs text-steel">
-                      From: @{record.username}
-                    </p>
-                  )}
+                  {record.username ? (
+                    <p className="mt-2 text-xs text-muted">From: @{record.username}</p>
+                  ) : null}
 
-                  <p className="mt-3 text-sm leading-7 text-ink">
+                  <p className="mt-3 text-sm leading-7 text-copy">
                     {expanded ? record.message : truncateText(record.message, 140)}
                   </p>
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="chip bg-[#faf6ed] text-ink">
+                    <span className="status-chip bg-elevated-strong/70 text-copy/80">
                       Confidence{" "}
                       {formatConfidence(
                         rescanned ? rescanned.confidence : record.confidence,
                       )}
                     </span>
-                    {rescanned && (
-                      <span className="chip bg-safe/10 text-safe">
+                    {rescanned ? (
+                      <span className="status-chip border-safe/20 bg-safe/10 text-safe">
                         Re-scanned
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="mt-4 flex gap-3">
                     <button
                       type="button"
                       onClick={() => toggleExpanded(record.id)}
-                      className="btn-secondary flex-1 px-4 py-2"
+                      className="btn-secondary-dark flex-1 rounded-xl px-4 py-2"
                     >
-                      {expanded ? "Show less" : "Expand"}
+                      {expanded ? "Collapse" : "Expand"}
                     </button>
                     <button
                       type="button"
                       disabled={isRescanning}
                       onClick={() => handleRescan(record)}
-                      className="rounded-full border border-signal/20 px-4 py-2 text-xs font-semibold text-signal transition hover:bg-signal/10 disabled:opacity-50"
+                      className="btn-secondary-dark rounded-xl border-primary/20 px-4 py-2 text-primary hover:bg-primary/10 disabled:opacity-50"
                     >
-                      {isRescanning ? "Scanning..." : "Re-scan"}
+                      <ArrowClockwise size={16} />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(record.id)}
-                      className="rounded-full border border-danger/20 px-4 py-2 text-xs font-semibold text-danger transition hover:bg-danger/10"
+                      className="btn-secondary-dark rounded-xl border-threat/20 px-4 py-2 text-threat hover:bg-threat/10"
                     >
-                      Delete
+                      <Trash size={16} />
                     </button>
                   </div>
                 </article>
@@ -221,12 +229,12 @@ export default function TelegramInbox({ showToast }) {
           <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 bg-white text-left">
+                <tr className="table-row-divider bg-panel/40 text-left">
                   {["Timestamp", "User", "Message", "Result", "Confidence", "Actions"].map(
                     (header) => (
                       <th
                         key={header}
-                        className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-steel"
+                        className="px-4 py-4 text-[11px] font-bold uppercase tracking-[0.18em] text-copy/45"
                       >
                         {header}
                       </th>
@@ -241,64 +249,62 @@ export default function TelegramInbox({ showToast }) {
                   const isRescanning = rescanningIds.has(record.id);
 
                   return (
-                    <tr key={record.id} className="border-b border-slate-50 hover:bg-white/70">
-                      <td className="table-cell min-w-[150px]">
+                    <tr key={record.id} className="table-row-divider hover:bg-elevated-strong/20">
+                      <td className="min-w-[150px] px-4 py-4 text-sm text-copy/80">
                         {formatDateTime(record.timestamp)}
                       </td>
-                      <td className="table-cell min-w-[100px]">
+                      <td className="min-w-[100px] px-4 py-4">
                         {record.username ? (
-                          <span className="text-sm text-ink">
-                            @{record.username}
-                          </span>
+                          <span className="text-sm text-copy">@{record.username}</span>
                         ) : (
-                          <span className="text-sm text-steel">Unknown</span>
+                          <span className="text-sm text-muted">Unknown</span>
                         )}
                       </td>
-                      <td className="table-cell min-w-[280px]">
+                      <td className="min-w-[280px] px-4 py-4">
                         <button
                           type="button"
                           onClick={() => toggleExpanded(record.id)}
-                          className="text-left leading-7 text-ink"
+                          className="text-left leading-7 text-copy"
                         >
                           {expanded
                             ? record.message
                             : truncateText(record.message, 100)}
-                          <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-signal">
-                            {expanded ? "Show less" : "Expand"}
+                          <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                            {expanded ? "Collapse" : "Expand"}
                           </span>
                         </button>
                       </td>
-                      <td className="table-cell">
+                      <td className="px-4 py-4">
                         <div className="flex flex-col gap-1">
                           <StatusBadge
                             value={rescanned ? rescanned.result : record.result}
                           />
-                          {rescanned && (
-                            <span className="text-xs text-steel">Re-scanned</span>
-                          )}
+                          {rescanned ? (
+                            <span className="text-xs text-muted">Re-scanned</span>
+                          ) : null}
                         </div>
                       </td>
-                      <td className="table-cell">
+                      <td className="px-4 py-4 text-sm font-semibold text-copy/80">
                         {formatConfidence(
                           rescanned ? rescanned.confidence : record.confidence,
                         )}
                       </td>
-                      <td className="table-cell">
+                      <td className="px-4 py-4">
                         <div className="flex gap-2">
                           <button
                             type="button"
                             disabled={isRescanning}
                             onClick={() => handleRescan(record)}
-                            className="rounded-full border border-signal/20 px-3 py-2 text-xs font-semibold text-signal transition hover:bg-signal/10 disabled:opacity-50"
+                            className="btn-secondary-dark rounded-xl border-primary/20 px-3 py-2 text-primary hover:bg-primary/10 disabled:opacity-50"
                           >
-                            {isRescanning ? "..." : "Re-scan"}
+                            <ArrowClockwise size={16} />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(record.id)}
-                            className="rounded-full border border-danger/20 px-3 py-2 text-xs font-semibold text-danger transition hover:bg-danger/10"
+                            className="btn-secondary-dark rounded-xl border-threat/20 px-3 py-2 text-threat hover:bg-threat/10"
                           >
-                            Delete
+                            <Trash size={16} />
                           </button>
                         </div>
                       </td>
@@ -311,29 +317,29 @@ export default function TelegramInbox({ showToast }) {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <section className="panel flex items-center justify-between p-4">
+      {totalPages > 1 ? (
+        <section className="app-panel flex items-center justify-between p-4">
           <button
             type="button"
             disabled={page === 1}
             onClick={() => setPage((current) => current - 1)}
-            className="btn-secondary px-4 py-2 disabled:opacity-40"
+            className="btn-secondary-dark rounded-xl px-4 py-2 disabled:opacity-40"
           >
-            Previous
+            <CaretLeft size={16} />
           </button>
-          <span className="text-sm text-steel">
+          <span className="text-sm text-muted">
             Page {page} of {totalPages}
           </span>
           <button
             type="button"
             disabled={page === totalPages}
             onClick={() => setPage((current) => current + 1)}
-            className="btn-secondary px-4 py-2 disabled:opacity-40"
+            className="btn-secondary-dark rounded-xl px-4 py-2 disabled:opacity-40"
           >
-            Next
+            <CaretRight size={16} />
           </button>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }
