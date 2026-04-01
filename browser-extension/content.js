@@ -1,96 +1,1001 @@
 (function () {
-  const POPUP_ID = "spam-detector-popup";
+  const selectors = window.TelegramSpamGuardSelectors || {};
+  const API_URL = "http://localhost:8000/scan";
+  const WORD_THRESHOLD_DEFAULT = 10;
+  const CACHE_TTL_MS = 2 * 60 * 1000;
+  const REQUEST_TIMEOUT_MS = 8000;
+  const MAX_CONCURRENCY = 2;
+  const REALTIME_DEBOUNCE_MS = 400;
+  const STORAGE_KEYS = {
+    autoScanEnabled: "autoScanEnabled",
+    minWords: "minWords",
+    panelCollapsed: "panelCollapsed",
+  };
 
-  function removePopup() {
-    document.getElementById(POPUP_ID)?.remove();
-  }
+  const state = {
+    settings: {
+      autoScanEnabled: true,
+      minWords: WORD_THRESHOLD_DEFAULT,
+      panelCollapsed: false,
+    },
+    status: "idle",
+    composer: null,
+    composerBadge: null,
+    composerHighlighter: null,
+    panel: null,
+    panelEls: {},
+    routeKey: getRouteKey(),
+    queue: [],
+    running: 0,
+    inFlightKeys: new Set(),
+    cache: new Map(),
+    incomingSeen: new Set(),
+    lastDraft: "",
+    draftDebounceTimer: null,
+    healthCheckTimer: null,
+    locationTimer: null,
+    composerObserver: null,
+    incomingObserver: null,
+  };
 
-  async function scanSelectedText(selectedText, popup) {
-    const button = popup.querySelector("button");
-    const resultEl = popup.querySelector("[data-result]");
+  init().catch((error) => {
+    console.error("[SpamGuard] init failed:", error);
+  });
 
-    button.disabled = true;
-    button.textContent = "Scanning...";
-
-    try {
-      const response = await fetch("http://localhost:8000/scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: selectedText,
-          source: "extension",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to contact the spam detection API.");
-      }
-
-      const data = await response.json();
-      resultEl.style.display = "block";
-      resultEl.style.color = data.result === "spam" ? "#e11d48" : "#0f766e";
-      resultEl.textContent = `${String(data.result).toUpperCase()} • ${(Number(data.confidence) * 100).toFixed(1)}%`;
-      button.textContent = "Scan complete";
-    } catch (error) {
-      resultEl.style.display = "block";
-      resultEl.style.color = "#e11d48";
-      resultEl.textContent = error.message;
-      button.textContent = "Retry";
-      button.disabled = false;
-    }
-  }
-
-  function createPopup(selectedText) {
-    removePopup();
-
-    const popup = document.createElement("div");
-    popup.id = POPUP_ID;
-    popup.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 999999;
-      width: min(320px, calc(100vw - 32px));
-      border-radius: 18px;
-      background: rgba(255, 250, 240, 0.97);
-      border: 1px solid rgba(17, 32, 59, 0.12);
-      box-shadow: 0 18px 40px rgba(17, 32, 59, 0.16);
-      padding: 16px;
-      font-family: "Segoe UI", sans-serif;
-      color: #11203b;
-    `;
-
-    popup.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#5f6f8c;">Spam Detector</div>
-          <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#11203b;">${selectedText.slice(0, 120)}${selectedText.length > 120 ? "..." : ""}</div>
-        </div>
-        <button data-close style="border:none;background:transparent;color:#5f6f8c;font-size:14px;cursor:pointer;">✕</button>
-      </div>
-      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
-        <button style="border:none;border-radius:999px;padding:10px 14px;background:#11203b;color:white;font-weight:700;cursor:pointer;">Scan for Spam</button>
-        <div data-result style="display:none;font-size:13px;font-weight:700;"></div>
-      </div>
-    `;
-
-    popup.querySelector("[data-close]")?.addEventListener("click", removePopup);
-    popup.querySelector("button:not([data-close])")?.addEventListener("click", () => {
-      scanSelectedText(selectedText, popup);
-    });
-
-    document.body.appendChild(popup);
-  }
-
-  document.addEventListener("mouseup", () => {
-    const selectedText = window.getSelection()?.toString().trim() || "";
-    if (selectedText.length >= 10) {
-      createPopup(selectedText);
+  async function init() {
+    if (!isTelegramWeb()) {
       return;
     }
 
-    removePopup();
-  });
+    injectStyles();
+    createPanel();
+    await loadSettings();
+    syncPanelControls();
+    updateStatus("watching", "Watching chat activity.");
+
+    bindGlobalEvents();
+    setupLocationWatcher();
+    setupComposerObserver();
+    setupIncomingObserver();
+    refreshComposer();
+  }
+
+  function isTelegramWeb() {
+    return location.hostname === "web.telegram.org";
+  }
+
+  function bindGlobalEvents() {
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("input", onInput, true);
+    document.addEventListener("click", onClick, true);
+  }
+
+  function setupLocationWatcher() {
+    state.locationTimer = window.setInterval(() => {
+      const current = getRouteKey();
+      if (state.routeKey !== current) {
+        state.routeKey = current;
+        state.incomingSeen.clear();
+        state.lastDraft = "";
+        refreshComposer();
+        updateStatus("watching", "Chat changed. Watching new thread.");
+      }
+    }, 1000);
+  }
+
+  function setupComposerObserver() {
+    if (state.composerObserver) {
+      state.composerObserver.disconnect();
+    }
+
+    state.composerObserver = new MutationObserver(() => {
+      refreshComposer();
+    });
+
+    state.composerObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  function setupIncomingObserver() {
+    if (state.incomingObserver) {
+      state.incomingObserver.disconnect();
+    }
+
+    state.incomingObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof HTMLElement)) {
+            continue;
+          }
+          processIncomingNode(node);
+        }
+      }
+    });
+
+    state.incomingObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  function refreshComposer() {
+    const composer = findComposer();
+    if (!composer) {
+      clearComposerHighlight();
+      state.composer = null;
+      return;
+    }
+
+    if (state.composer === composer) {
+      updateComposerBadge();
+      return;
+    }
+
+    clearComposerHighlight();
+    state.composer = composer;
+    applyComposerHighlight(composer);
+    hookSendButton();
+    updateComposerBadge();
+  }
+
+  function findComposer() {
+    const candidates = collectCandidates(selectors.composerCandidates);
+    if (!candidates.length) {
+      return null;
+    }
+
+    const scored = candidates
+      .filter(isVisibleElement)
+      .map((element) => ({
+        element,
+        score: scoreComposerCandidate(element),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    return scored[0]?.element || null;
+  }
+
+  function collectCandidates(candidateSelectors) {
+    if (!Array.isArray(candidateSelectors)) {
+      return [];
+    }
+
+    const found = [];
+    for (const selector of candidateSelectors) {
+      document.querySelectorAll(selector).forEach((node) => found.push(node));
+    }
+    return Array.from(new Set(found));
+  }
+
+  function scoreComposerCandidate(element) {
+    const rect = element.getBoundingClientRect();
+    const contentEditable =
+      element.getAttribute("contenteditable") === "true" ? 20 : 0;
+    const bottomBias = rect.bottom > window.innerHeight * 0.6 ? 50 : 0;
+    const sizeBias = Math.min(30, Math.max(0, rect.width / 25));
+    return rect.bottom + contentEditable + bottomBias + sizeBias;
+  }
+
+  function isVisibleElement(element) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return false;
+    }
+    const style = window.getComputedStyle(element);
+    return style.display !== "none" && style.visibility !== "hidden";
+  }
+
+  function applyComposerHighlight(composer) {
+    composer.classList.add("spam-guard-composer");
+
+    const badge = document.createElement("div");
+    badge.className = "spam-guard-composer-badge";
+    badge.textContent = "";
+    composer.parentElement?.appendChild(badge);
+
+    state.composerBadge = badge;
+    state.composerHighlighter = composer;
+  }
+
+  function clearComposerHighlight() {
+    if (state.composerHighlighter) {
+      state.composerHighlighter.classList.remove("spam-guard-composer");
+    }
+    state.composerHighlighter = null;
+    if (state.composerBadge) {
+      state.composerBadge.remove();
+      state.composerBadge = null;
+    }
+  }
+
+  function updateComposerBadge(extraText) {
+    if (!state.composerBadge) {
+      return;
+    }
+    const statusText = state.settings.autoScanEnabled ? "AUTO ON" : "AUTO OFF";
+    state.composerBadge.textContent = extraText
+      ? "Spam Guard " + statusText + " - " + extraText
+      : "Spam Guard " + statusText;
+    state.composerBadge.dataset.enabled = String(state.settings.autoScanEnabled);
+  }
+
+  function onInput(event) {
+    const target = event.target;
+    if (!state.composer || !target || target !== state.composer) {
+      return;
+    }
+    state.lastDraft = getComposerText(state.composer);
+
+    if (!state.settings.autoScanEnabled) {
+      updateComposerBadge("manual mode");
+      return;
+    }
+
+    window.clearTimeout(state.draftDebounceTimer);
+    state.draftDebounceTimer = window.setTimeout(() => {
+      triggerDraftScan("realtime");
+    }, REALTIME_DEBOUNCE_MS);
+  }
+
+  function onKeyDown(event) {
+    if (!state.composer || event.target !== state.composer) {
+      return;
+    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      triggerDraftScan("send");
+    }
+  }
+
+  function onClick(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    if (target.closest(".spam-guard-toggle")) {
+      const input = state.panelEls.autoScanToggle;
+      if (input) {
+        setAutoScanEnabled(Boolean(input.checked));
+      }
+      return;
+    }
+
+    if (target.closest(".spam-guard-collapse")) {
+      const next = !state.settings.panelCollapsed;
+      setPanelCollapsed(next);
+      return;
+    }
+
+    if (isLikelySendButton(target)) {
+      triggerDraftScan("send");
+    }
+  }
+
+  function hookSendButton() {
+    const sendButtons = collectCandidates(selectors.sendButtonCandidates);
+    sendButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+      if (button.dataset.spamGuardHooked === "true") {
+        return;
+      }
+      button.dataset.spamGuardHooked = "true";
+      button.addEventListener(
+        "click",
+        () => {
+          triggerDraftScan("send");
+        },
+        true,
+      );
+    });
+  }
+
+  function isLikelySendButton(node) {
+    const button = node.closest("button");
+    if (!button) {
+      return false;
+    }
+    const hints = [
+      button.getAttribute("aria-label"),
+      button.getAttribute("title"),
+      button.className,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return hints.includes("send");
+  }
+
+  function triggerDraftScan(trigger) {
+    if (!state.settings.autoScanEnabled) {
+      return;
+    }
+    if (!state.composer) {
+      return;
+    }
+    const text = getComposerText(state.composer);
+    enqueueScan({
+      chatKey: getChatKey(),
+      text,
+      direction: "outgoing",
+      trigger,
+      timestamp: Date.now(),
+      username: getCurrentUsername(),
+    });
+  }
+
+  function getComposerText(composer) {
+    const raw = (composer.innerText || composer.textContent || "").trim();
+    return raw.replace(/\s+/g, " ");
+  }
+
+  function processIncomingNode(node) {
+    const candidates = extractMessageCandidates(node);
+    for (const candidate of candidates) {
+      const text = extractText(candidate);
+      if (!text) {
+        continue;
+      }
+      if (countWords(text) <= state.settings.minWords) {
+        continue;
+      }
+
+      const direction = inferDirection(candidate);
+      if (direction !== "incoming") {
+        continue;
+      }
+
+      const fingerprint = hashString(getChatKey() + "|" + text);
+      if (state.incomingSeen.has(fingerprint)) {
+        continue;
+      }
+      state.incomingSeen.add(fingerprint);
+
+      enqueueScan({
+        chatKey: getChatKey(),
+        text,
+        direction: "incoming",
+        trigger: "realtime",
+        timestamp: Date.now(),
+        username: getCurrentUsername(),
+      });
+    }
+  }
+
+  function extractMessageCandidates(node) {
+    const candidates = [];
+    if (matchesAny(node, selectors.messageCandidates)) {
+      candidates.push(node);
+    }
+    if (Array.isArray(selectors.messageCandidates)) {
+      for (const selector of selectors.messageCandidates) {
+        node.querySelectorAll(selector).forEach((el) => {
+          if (el instanceof HTMLElement) {
+            candidates.push(el);
+          }
+        });
+      }
+    }
+    return Array.from(new Set(candidates));
+  }
+
+  function matchesAny(element, candidateSelectors) {
+    if (!Array.isArray(candidateSelectors)) {
+      return false;
+    }
+    return candidateSelectors.some((selector) => {
+      try {
+        return element.matches(selector);
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  function extractText(element) {
+    const text = (element.innerText || element.textContent || "").trim();
+    if (!text) {
+      return "";
+    }
+    return text.replace(/\s+/g, " ");
+  }
+
+  function inferDirection(element) {
+    const metadata = [
+      element.className,
+      element.getAttribute("data-is-outgoing"),
+      element.getAttribute("data-message-owner"),
+      element.getAttribute("aria-label"),
+      element.closest('[class*="message"]')?.className,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (containsHint(metadata, selectors.outgoingHints)) {
+      return "outgoing";
+    }
+    if (containsHint(metadata, selectors.incomingHints)) {
+      return "incoming";
+    }
+    return "incoming";
+  }
+
+  function containsHint(text, hints) {
+    if (!Array.isArray(hints)) {
+      return false;
+    }
+    return hints.some((hint) => text.includes(String(hint).toLowerCase()));
+  }
+
+  function enqueueScan(candidate) {
+    const normalizedText = String(candidate.text || "").trim();
+    if (!normalizedText) {
+      return;
+    }
+    if (countWords(normalizedText) <= state.settings.minWords) {
+      return;
+    }
+
+    const queueKey = buildQueueKey(candidate.chatKey, normalizedText);
+    const now = Date.now();
+    const cached = state.cache.get(queueKey);
+    if (cached && now - cached.createdAt < CACHE_TTL_MS) {
+      applyDecision({
+        ...candidate,
+        result: cached.data.result,
+        confidence: cached.data.confidence,
+      });
+      return;
+    }
+    if (state.inFlightKeys.has(queueKey)) {
+      return;
+    }
+    if (state.queue.some((item) => item.queueKey === queueKey)) {
+      return;
+    }
+
+    state.queue.push({
+      ...candidate,
+      text: normalizedText,
+      queueKey,
+    });
+    pumpQueue();
+  }
+
+  function buildQueueKey(chatKey, text) {
+    return String(chatKey || "chat") + ":" + hashString(text);
+  }
+
+  function pumpQueue() {
+    while (state.running < MAX_CONCURRENCY && state.queue.length > 0) {
+      const candidate = state.queue.shift();
+      if (!candidate) {
+        return;
+      }
+      state.running += 1;
+      state.inFlightKeys.add(candidate.queueKey);
+      scanCandidate(candidate)
+        .catch(() => {})
+        .finally(() => {
+          state.running -= 1;
+          state.inFlightKeys.delete(candidate.queueKey);
+          pumpQueue();
+        });
+    }
+  }
+
+  async function scanCandidate(candidate) {
+    updateStatus("scanning", "Scanning " + candidate.direction + " message...");
+    updateComposerBadge("scanning");
+
+    try {
+      const data = await scanWithRetry(candidate);
+      state.cache.set(candidate.queueKey, {
+        createdAt: Date.now(),
+        data,
+      });
+      applyDecision({
+        ...candidate,
+        result: data.result,
+        confidence: Number(data.confidence) || 0,
+      });
+    } catch (error) {
+      const isNetworkError = isLikelyNetworkError(error);
+      if (isNetworkError) {
+        updateStatus("offline", "Backend unavailable.");
+      } else {
+        updateStatus("error", "Scan failed.");
+      }
+      updatePanelContent({
+        text: candidate.text,
+        direction: candidate.direction,
+        trigger: candidate.trigger,
+        resultLabel: "-",
+        confidenceLabel: "-",
+        adviceLevel: "caution",
+        adviceText: "Could not score this message right now.",
+      });
+    } finally {
+      updateComposerBadge();
+    }
+  }
+
+  async function scanWithRetry(candidate) {
+    try {
+      return await requestScan(candidate);
+    } catch (firstError) {
+      await sleep(250);
+      return requestScan(candidate, firstError);
+    }
+  }
+
+  async function requestScan(candidate, previousError) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: candidate.text,
+          source: "extension",
+          username: candidate.username || null,
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error("Scan API error: " + response.status);
+      }
+      return await response.json();
+    } catch (error) {
+      if (previousError) {
+        throw previousError;
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  function applyDecision(payload) {
+    const decision = mapDecision(payload.result, payload.confidence);
+    const confidenceLabel = formatConfidence(payload.confidence);
+    updateStatus("done", "Latest " + payload.direction + " message scored.");
+    updatePanelContent({
+      text: payload.text,
+      direction: payload.direction,
+      trigger: payload.trigger,
+      resultLabel: String(payload.result || "").toUpperCase(),
+      confidenceLabel,
+      adviceLevel: decision.level,
+      adviceText: decision.text,
+    });
+  }
+
+  function mapDecision(result, confidence) {
+    const normalizedResult = String(result || "").toLowerCase();
+    const normalizedConfidence = Number(confidence) || 0;
+
+    if (normalizedResult === "spam" && normalizedConfidence >= 0.8) {
+      return {
+        level: "risky",
+        text: "Risky: Ignore this message and avoid clicking links.",
+      };
+    }
+    if (
+      normalizedResult === "spam" &&
+      normalizedConfidence >= 0.55 &&
+      normalizedConfidence < 0.8
+    ) {
+      return {
+        level: "caution",
+        text: "Caution: Verify source and link destination before clicking.",
+      };
+    }
+    return {
+      level: "safe",
+      text: "Safe: Message looks acceptable, but still verify unusual requests.",
+    };
+  }
+
+  function createPanel() {
+    const panel = document.createElement("aside");
+    panel.id = "spam-guard-panel";
+    panel.innerHTML = [
+      '<div class="spam-guard-header">',
+      '<div class="spam-guard-title-wrap">',
+      '<div class="spam-guard-kicker">Spam Guard</div>',
+      '<div class="spam-guard-title">Telegram Safety</div>',
+      "</div>",
+      '<button class="spam-guard-collapse" type="button" aria-label="Collapse panel">-</button>',
+      "</div>",
+      '<div class="spam-guard-controls">',
+      '<label class="spam-guard-toggle">',
+      '<input type="checkbox" class="spam-guard-toggle-input" />',
+      '<span class="spam-guard-toggle-label">Auto Scan</span>',
+      "</label>",
+      '<span class="spam-guard-status-badge">IDLE</span>',
+      "</div>",
+      '<div class="spam-guard-body">',
+      '<div class="spam-guard-message"></div>',
+      '<div class="spam-guard-meta">',
+      '<span class="spam-guard-pill spam-guard-result">-</span>',
+      '<span class="spam-guard-pill spam-guard-confidence">-</span>',
+      '<span class="spam-guard-pill spam-guard-direction">-</span>',
+      "</div>",
+      "</div>",
+      '<div class="spam-guard-footer">',
+      '<div class="spam-guard-advice-level">SAFE</div>',
+      '<div class="spam-guard-advice-text">Waiting for enough words to scan.</div>',
+      "</div>",
+    ].join("");
+
+    document.body.appendChild(panel);
+    state.panel = panel;
+    state.panelEls = {
+      autoScanToggle: panel.querySelector(".spam-guard-toggle-input"),
+      statusBadge: panel.querySelector(".spam-guard-status-badge"),
+      message: panel.querySelector(".spam-guard-message"),
+      result: panel.querySelector(".spam-guard-result"),
+      confidence: panel.querySelector(".spam-guard-confidence"),
+      direction: panel.querySelector(".spam-guard-direction"),
+      adviceLevel: panel.querySelector(".spam-guard-advice-level"),
+      adviceText: panel.querySelector(".spam-guard-advice-text"),
+    };
+  }
+
+  function syncPanelControls() {
+    if (!state.panel) {
+      return;
+    }
+    const toggle = state.panelEls.autoScanToggle;
+    if (toggle) {
+      toggle.checked = Boolean(state.settings.autoScanEnabled);
+    }
+    state.panel.classList.toggle("is-collapsed", Boolean(state.settings.panelCollapsed));
+    updateComposerBadge();
+  }
+
+  function updatePanelContent(content) {
+    if (!state.panel) {
+      return;
+    }
+    const { message, result, confidence, direction, adviceLevel, adviceText } =
+      state.panelEls;
+
+    if (message) {
+      message.textContent = truncate(content.text || "", 180);
+    }
+    if (result) {
+      result.textContent = content.resultLabel || "-";
+    }
+    if (confidence) {
+      confidence.textContent = content.confidenceLabel || "-";
+    }
+    if (direction) {
+      direction.textContent =
+        (content.direction || "unknown").toUpperCase() +
+        " / " +
+        String(content.trigger || "manual").toUpperCase();
+    }
+    if (adviceLevel) {
+      adviceLevel.textContent = String(content.adviceLevel || "safe").toUpperCase();
+      adviceLevel.dataset.level = String(content.adviceLevel || "safe");
+    }
+    if (adviceText) {
+      adviceText.textContent = content.adviceText || "";
+    }
+  }
+
+  function updateStatus(status, message) {
+    state.status = status;
+    if (!state.panelEls.statusBadge) {
+      return;
+    }
+    state.panelEls.statusBadge.textContent = status.toUpperCase();
+    state.panelEls.statusBadge.dataset.status = status;
+    if (message && state.panelEls.message && !state.panelEls.message.textContent) {
+      state.panelEls.message.textContent = message;
+    }
+  }
+
+  function setAutoScanEnabled(value) {
+    state.settings.autoScanEnabled = Boolean(value);
+    chrome.storage.local.set({
+      [STORAGE_KEYS.autoScanEnabled]: state.settings.autoScanEnabled,
+    });
+    syncPanelControls();
+    updateStatus(
+      "watching",
+      state.settings.autoScanEnabled
+        ? "Auto scan enabled."
+        : "Auto scan disabled.",
+    );
+  }
+
+  function setPanelCollapsed(value) {
+    state.settings.panelCollapsed = Boolean(value);
+    chrome.storage.local.set({
+      [STORAGE_KEYS.panelCollapsed]: state.settings.panelCollapsed,
+    });
+    if (state.panel) {
+      state.panel.classList.toggle("is-collapsed", state.settings.panelCollapsed);
+    }
+  }
+
+  async function loadSettings() {
+    const defaults = {
+      [STORAGE_KEYS.autoScanEnabled]: true,
+      [STORAGE_KEYS.minWords]: WORD_THRESHOLD_DEFAULT,
+      [STORAGE_KEYS.panelCollapsed]: false,
+    };
+
+    const result = await new Promise((resolve) => {
+      chrome.storage.local.get(defaults, resolve);
+    });
+
+    state.settings.autoScanEnabled = Boolean(result[STORAGE_KEYS.autoScanEnabled]);
+    state.settings.minWords = Math.max(
+      WORD_THRESHOLD_DEFAULT,
+      Number(result[STORAGE_KEYS.minWords]) || WORD_THRESHOLD_DEFAULT,
+    );
+    state.settings.panelCollapsed = Boolean(result[STORAGE_KEYS.panelCollapsed]);
+  }
+
+  function getChatKey() {
+    return getRouteKey();
+  }
+
+  function getRouteKey() {
+    return location.pathname + location.search + location.hash;
+  }
+
+  function getCurrentUsername() {
+    const title = document.title || "";
+    const normalized = title.replace(/\s+-\s+Telegram$/i, "").trim();
+    return normalized || null;
+  }
+
+  function countWords(text) {
+    const cleaned = String(text || "").trim();
+    if (!cleaned) {
+      return 0;
+    }
+    return cleaned.split(/\s+/).filter(Boolean).length;
+  }
+
+  function formatConfidence(confidence) {
+    const value = Number(confidence);
+    if (!Number.isFinite(value)) {
+      return "-";
+    }
+    return (value * 100).toFixed(1) + "%";
+  }
+
+  function truncate(value, maxLength) {
+    const text = String(value || "");
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return text.slice(0, maxLength - 3) + "...";
+  }
+
+  function isLikelyNetworkError(error) {
+    const message = String(error?.message || "").toLowerCase();
+    return (
+      message.includes("failed to fetch") ||
+      message.includes("network") ||
+      message.includes("abort")
+    );
+  }
+
+  function sleep(ms) {
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function hashString(value) {
+    let hash = 0;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+      hash = (hash << 5) - hash + text.charCodeAt(i);
+      hash |= 0;
+    }
+    return String(hash);
+  }
+
+  function injectStyles() {
+    if (document.getElementById("spam-guard-style")) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "spam-guard-style";
+    style.textContent = `
+      #spam-guard-panel {
+        position: fixed;
+        right: 14px;
+        top: 84px;
+        z-index: 2147483647;
+        width: min(340px, calc(100vw - 28px));
+        border-radius: 14px;
+        background: rgba(9, 17, 35, 0.96);
+        color: #e5ecff;
+        border: 1px solid rgba(130, 160, 255, 0.22);
+        box-shadow: 0 18px 45px rgba(2, 6, 18, 0.5);
+        font-family: Segoe UI, Arial, sans-serif;
+        backdrop-filter: blur(8px);
+      }
+
+      #spam-guard-panel.is-collapsed .spam-guard-body,
+      #spam-guard-panel.is-collapsed .spam-guard-footer {
+        display: none;
+      }
+
+      .spam-guard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 12px 8px;
+        border-bottom: 1px solid rgba(130, 160, 255, 0.16);
+      }
+
+      .spam-guard-kicker {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(164, 189, 255, 0.84);
+        font-weight: 700;
+      }
+
+      .spam-guard-title {
+        margin-top: 2px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .spam-guard-collapse {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 999px;
+        background: rgba(130, 160, 255, 0.18);
+        color: #e5ecff;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .spam-guard-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+
+      .spam-guard-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .spam-guard-toggle-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(229, 236, 255, 0.88);
+      }
+
+      .spam-guard-status-badge {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(130, 160, 255, 0.15);
+      }
+
+      .spam-guard-status-badge[data-status="offline"],
+      .spam-guard-status-badge[data-status="error"] {
+        background: rgba(255, 110, 144, 0.2);
+      }
+
+      .spam-guard-status-badge[data-status="done"] {
+        background: rgba(87, 219, 157, 0.22);
+      }
+
+      .spam-guard-body {
+        padding: 8px 12px 12px;
+      }
+
+      .spam-guard-message {
+        min-height: 56px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(229, 236, 255, 0.9);
+      }
+
+      .spam-guard-meta {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .spam-guard-pill {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(130, 160, 255, 0.17);
+      }
+
+      .spam-guard-footer {
+        border-top: 1px solid rgba(130, 160, 255, 0.16);
+        padding: 10px 12px 12px;
+      }
+
+      .spam-guard-advice-level {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        font-weight: 800;
+      }
+
+      .spam-guard-advice-level[data-level="safe"] { color: #66e6b1; }
+      .spam-guard-advice-level[data-level="caution"] { color: #ffd96a; }
+      .spam-guard-advice-level[data-level="risky"] { color: #ff8aa7; }
+
+      .spam-guard-advice-text {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: rgba(229, 236, 255, 0.92);
+      }
+
+      .spam-guard-composer {
+        outline: 2px solid rgba(110, 152, 255, 0.68) !important;
+        outline-offset: 2px !important;
+        border-radius: 8px !important;
+      }
+
+      .spam-guard-composer-badge {
+        position: absolute;
+        transform: translateY(-128%);
+        right: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        background: rgba(9, 17, 35, 0.95);
+        color: #e5ecff;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(130, 160, 255, 0.25);
+        z-index: 2147483646;
+        white-space: nowrap;
+      }
+
+      .spam-guard-composer-badge[data-enabled="false"] {
+        border-color: rgba(255, 128, 155, 0.25);
+        color: rgba(255, 171, 189, 0.96);
+      }
+
+      @media (max-width: 960px) {
+        #spam-guard-panel {
+          right: 10px;
+          top: auto;
+          bottom: 10px;
+          width: min(95vw, 340px);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 })();
