@@ -20,8 +20,10 @@ Chromium-based extension for Chrome, Coc Coc, and Opera.
 
 - Runs only on `https://web.telegram.org/*`.
 - Detects composer area and adds highlight + `Auto Scan` badge.
-- Observes incoming messages and outgoing drafts.
+- Scans hovered messages only after 2 seconds (to reduce backend load).
+- Observes outgoing drafts.
 - Triggers scans:
+  - hover (2s stable hover on a message)
   - realtime (debounced) while typing
   - final check when pressing Send
 - Sends message text to `http://localhost:8000/scan` with `source: "extension"`.

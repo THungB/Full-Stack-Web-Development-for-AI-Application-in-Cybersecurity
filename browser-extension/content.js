@@ -6,6 +6,7 @@
   const REQUEST_TIMEOUT_MS = 8000;
   const MAX_CONCURRENCY = 2;
   const REALTIME_DEBOUNCE_MS = 400;
+  const HOVER_SCAN_DELAY_MS = 2000;
   const STORAGE_KEYS = {
     autoScanEnabled: "autoScanEnabled",
     minWords: "minWords",
@@ -30,6 +31,9 @@
     inFlightKeys: new Set(),
     cache: new Map(),
     incomingSeen: new Set(),
+    hoverTimer: null,
+    hoverFingerprint: "",
+    hoveredMessageEl: null,
     lastDraft: "",
     draftDebounceTimer: null,
     healthCheckTimer: null,
@@ -57,7 +61,6 @@
     bindGlobalEvents();
     setupLocationWatcher();
     setupComposerObserver();
-    setupIncomingObserver();
     refreshComposer();
   }
 
@@ -69,6 +72,8 @@
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("input", onInput, true);
     document.addEventListener("click", onClick, true);
+    document.addEventListener("mouseover", onMouseOver, true);
+    document.addEventListener("mouseout", onMouseOut, true);
   }
 
   function setupLocationWatcher() {
@@ -77,6 +82,9 @@
       if (state.routeKey !== current) {
         state.routeKey = current;
         state.incomingSeen.clear();
+        clearHoverTimer();
+        state.hoveredMessageEl = null;
+        state.hoverFingerprint = "";
         state.lastDraft = "";
         refreshComposer();
         updateStatus("watching", "Chat changed. Watching new thread.");
@@ -293,6 +301,86 @@
     }
   }
 
+  function onMouseOver(event) {
+    if (!state.settings.autoScanEnabled) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const messageElement = findMessageElement(target);
+    if (!messageElement || isExtensionNode(messageElement)) {
+      return;
+    }
+
+    const previous = event.relatedTarget;
+    if (previous instanceof Node && messageElement.contains(previous)) {
+      return;
+    }
+
+    const text = extractText(messageElement);
+    if (!text || countWords(text) <= state.settings.minWords) {
+      clearHoverTimer();
+      updateComposerBadge("hover > " + state.settings.minWords + " words");
+      return;
+    }
+
+    const direction = inferDirection(messageElement);
+    const fingerprint = hashString(getChatKey() + "|" + text);
+
+    if (state.incomingSeen.has(fingerprint) || state.hoverFingerprint === fingerprint) {
+      return;
+    }
+
+    state.hoveredMessageEl = messageElement;
+    state.hoverFingerprint = fingerprint;
+    clearHoverTimer();
+    updateStatus("watching", "Hover 2s to scan message.");
+    updateComposerBadge("hover scanning");
+
+    state.hoverTimer = window.setTimeout(() => {
+      if (!state.hoveredMessageEl || state.hoveredMessageEl !== messageElement) {
+        return;
+      }
+      state.incomingSeen.add(fingerprint);
+      enqueueScan({
+        chatKey: getChatKey(),
+        text,
+        direction,
+        trigger: "hover",
+        timestamp: Date.now(),
+        username: getCurrentUsername(),
+      });
+    }, HOVER_SCAN_DELAY_MS);
+  }
+
+  function onMouseOut(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const messageElement = findMessageElement(target);
+    if (!messageElement) {
+      return;
+    }
+
+    const next = event.relatedTarget;
+    if (next instanceof Node && messageElement.contains(next)) {
+      return;
+    }
+
+    if (state.hoveredMessageEl === messageElement) {
+      clearHoverTimer();
+      state.hoveredMessageEl = null;
+      state.hoverFingerprint = "";
+      updateComposerBadge();
+    }
+  }
+
   function hookSendButton() {
     const sendButtons = collectCandidates(selectors.sendButtonCandidates);
     sendButtons.forEach((button) => {
@@ -386,6 +474,23 @@
         username: getCurrentUsername(),
       });
     }
+  }
+
+  function findMessageElement(startNode) {
+    if (!(startNode instanceof HTMLElement)) {
+      return null;
+    }
+    if (!Array.isArray(selectors.messageCandidates)) {
+      return null;
+    }
+
+    for (const selector of selectors.messageCandidates) {
+      const found = startNode.closest(selector);
+      if (found instanceof HTMLElement) {
+        return found;
+      }
+    }
+    return null;
   }
 
   function extractMessageCandidates(node) {
@@ -729,6 +834,11 @@
 
   function setAutoScanEnabled(value) {
     state.settings.autoScanEnabled = Boolean(value);
+    if (!state.settings.autoScanEnabled) {
+      clearHoverTimer();
+      state.hoveredMessageEl = null;
+      state.hoverFingerprint = "";
+    }
     chrome.storage.local.set({
       [STORAGE_KEYS.autoScanEnabled]: state.settings.autoScanEnabled,
     });
@@ -831,6 +941,13 @@
       hash |= 0;
     }
     return String(hash);
+  }
+
+  function clearHoverTimer() {
+    if (state.hoverTimer) {
+      window.clearTimeout(state.hoverTimer);
+      state.hoverTimer = null;
+    }
   }
 
   function injectStyles() {
