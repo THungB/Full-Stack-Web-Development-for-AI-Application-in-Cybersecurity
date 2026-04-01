@@ -36,6 +36,7 @@
     locationTimer: null,
     composerObserver: null,
     incomingObserver: null,
+    composerRefreshQueued: false,
   };
 
   init().catch((error) => {
@@ -88,8 +89,11 @@
       state.composerObserver.disconnect();
     }
 
-    state.composerObserver = new MutationObserver(() => {
-      refreshComposer();
+    state.composerObserver = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => isExtensionNode(mutation.target))) {
+        return;
+      }
+      queueComposerRefresh();
     });
 
     state.composerObserver.observe(document.body, {
@@ -105,8 +109,14 @@
 
     state.incomingObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (isExtensionNode(mutation.target)) {
+          continue;
+        }
         for (const node of mutation.addedNodes) {
           if (!(node instanceof HTMLElement)) {
+            continue;
+          }
+          if (isExtensionNode(node)) {
             continue;
           }
           processIncomingNode(node);
@@ -129,7 +139,6 @@
     }
 
     if (state.composer === composer) {
-      updateComposerBadge();
       return;
     }
 
@@ -138,6 +147,17 @@
     applyComposerHighlight(composer);
     hookSendButton();
     updateComposerBadge();
+  }
+
+  function queueComposerRefresh() {
+    if (state.composerRefreshQueued) {
+      return;
+    }
+    state.composerRefreshQueued = true;
+    window.requestAnimationFrame(() => {
+      state.composerRefreshQueued = false;
+      refreshComposer();
+    });
   }
 
   function findComposer() {
@@ -333,6 +353,9 @@
   }
 
   function processIncomingNode(node) {
+    if (isExtensionNode(node)) {
+      return;
+    }
     const candidates = extractMessageCandidates(node);
     for (const candidate of candidates) {
       const text = extractText(candidate);
@@ -367,13 +390,13 @@
 
   function extractMessageCandidates(node) {
     const candidates = [];
-    if (matchesAny(node, selectors.messageCandidates)) {
+    if (!isExtensionNode(node) && matchesAny(node, selectors.messageCandidates)) {
       candidates.push(node);
     }
     if (Array.isArray(selectors.messageCandidates)) {
       for (const selector of selectors.messageCandidates) {
         node.querySelectorAll(selector).forEach((el) => {
-          if (el instanceof HTMLElement) {
+          if (el instanceof HTMLElement && !isExtensionNode(el)) {
             candidates.push(el);
           }
         });
@@ -997,5 +1020,21 @@
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function isExtensionNode(node) {
+    if (!(node instanceof HTMLElement)) {
+      return false;
+    }
+    if (node.id === "spam-guard-panel" || node.id === "spam-guard-style") {
+      return true;
+    }
+    if (node.classList.contains("spam-guard-composer-badge")) {
+      return true;
+    }
+    if (node.closest("#spam-guard-panel")) {
+      return true;
+    }
+    return false;
   }
 })();
