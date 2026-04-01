@@ -3,9 +3,9 @@ import logging
 import os
 import threading
 from contextlib import asynccontextmanager
+from fastapi.responses import RedirectResponse
 
 from dotenv import load_dotenv
-from fastapi.responses import RedirectResponse
 load_dotenv()
 
 from fastapi import FastAPI
@@ -101,11 +101,6 @@ app.include_router(history.router, tags=["history"])
 app.include_router(stats.router, tags=["stats"])
 app.include_router(telegram.router, tags=["telegram"])
 
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
 @app.get("/")
 def root():
-    return RedirectResponse(url="/docs") 
+    return RedirectResponse(url="/docs")
