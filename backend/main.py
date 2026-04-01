@@ -90,7 +90,14 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_origin_regex=r"^https?://localhost(:\d+)?$|^https?://127\.0\.0\.1(:\d+)?$|^chrome-extension://.*$|^moz-extension://.*$",
+    allow_origin_regex=(
+        r"^https?://localhost(:\d+)?$"
+        r"|^https?://127\.0\.0\.1(:\d+)?$"
+        r"|^https://web\.telegram\.org$"
+        r"|^https://([a-z0-9-]+\.)?telegram\.org$"
+        r"|^chrome-extension://.*$"
+        r"|^moz-extension://.*$"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
