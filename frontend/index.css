@@ -1,0 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #dae2fd;
+  background: #0b1326;
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(67, 85, 185, 0.18), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(74, 225, 118, 0.08), transparent 28%),
+    linear-gradient(180deg, #0b1326 0%, #091120 100%);
+  color: #dae2fd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(186, 195, 255, 0.24);
+}
+
+@layer base {
+
+  html,
+  body,
+  #root {
+    @apply bg-shell text-copy;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-copy;
+  }
+
+  p {
+    @apply text-muted;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
+
+@layer components {
+  .app-panel {
+    @apply rounded-3xl border border-line/15 bg-panel/90 shadow-panel backdrop-blur-xl;
+  }
+
+  .app-panel-soft {
+    @apply rounded-3xl border border-line/15 bg-surface/85 shadow-panel backdrop-blur-xl;
+  }
+
+  .glass-panel {
+    @apply bg-elevated/70 backdrop-blur-[20px];
+  }
+
+  .field-dark {
+    @apply w-full rounded-2xl border border-line/20 bg-elevated-strong/90 px-4 py-3 text-sm text-copy outline-none transition placeholder:text-muted/55 focus:border-primary/25 focus:ring-0;
+  }
+
+  .btn-primary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-strong px-5 py-3 text-sm font-semibold text-copy transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-line/20 bg-elevated/90 px-5 py-3 text-sm font-semibold text-copy transition hover:bg-elevated-strong disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .status-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-line/20 bg-elevated px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
+  }
+
+  .metric-card {
+    @apply relative overflow-hidden rounded-3xl border border-line/15 bg-surface/85 p-5 shadow-panel backdrop-blur-xl transition hover:bg-elevated/90;
+  }
+
+  .table-row-divider {
+    @apply border-b border-line/10;
+  }
+
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(218, 226, 253, 0.947) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(229, 231, 239, 0) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+}
