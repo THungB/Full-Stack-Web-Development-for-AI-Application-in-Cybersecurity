@@ -119,3 +119,7 @@ __marimo__/
 
 #AI Skills
 skills
+
+# Test artifacts
+backend/*.json
+backend/sample_*.csv

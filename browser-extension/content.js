@@ -321,7 +321,7 @@
       return;
     }
 
-    const text = extractText(messageElement);
+    const text = normalizeMessageText(extractText(messageElement));
     if (!text || countWords(text) <= state.settings.minWords) {
       clearHoverTimer();
       updateComposerBadge("hover > " + state.settings.minWords + " words");
@@ -424,7 +424,7 @@
     if (!state.composer) {
       return;
     }
-    const text = getComposerText(state.composer);
+    const text = normalizeMessageText(getComposerText(state.composer));
     enqueueScan({
       chatKey: getChatKey(),
       text,
@@ -560,7 +560,7 @@
   }
 
   function enqueueScan(candidate) {
-    const normalizedText = String(candidate.text || "").trim();
+    const normalizedText = normalizeMessageText(String(candidate.text || ""));
     if (!normalizedText) {
       return;
     }
@@ -698,7 +698,8 @@
       text: payload.text,
       direction: payload.direction,
       trigger: payload.trigger,
-      resultLabel: String(payload.result || "").toUpperCase(),
+      resultLabel:
+        decision.resultLabelOverride || String(payload.result || "").toUpperCase(),
       confidenceLabel,
       adviceLevel: decision.level,
       adviceText: decision.text,
@@ -709,9 +710,18 @@
     const normalizedResult = String(result || "").toLowerCase();
     const normalizedConfidence = Number(confidence) || 0;
 
+    if (normalizedConfidence >= 0.45 && normalizedConfidence <= 0.55) {
+      return {
+        level: "caution",
+        resultLabelOverride: "UNCERTAIN",
+        text: "Caution: Model confidence is near boundary. Verify sender and link before acting.",
+      };
+    }
+
     if (normalizedResult === "spam" && normalizedConfidence >= 0.8) {
       return {
         level: "risky",
+        resultLabelOverride: "SPAM",
         text: "Risky: Ignore this message and avoid clicking links.",
       };
     }
@@ -722,11 +732,13 @@
     ) {
       return {
         level: "caution",
+        resultLabelOverride: "SPAM",
         text: "Caution: Verify source and link destination before clicking.",
       };
     }
     return {
       level: "safe",
+      resultLabelOverride: "HAM",
       text: "Safe: Message looks acceptable, but still verify unusual requests.",
     };
   }
@@ -916,6 +928,15 @@
       return text;
     }
     return text.slice(0, maxLength - 3) + "...";
+  }
+
+  function normalizeMessageText(value) {
+    return String(value || "")
+      .normalize("NFKC")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/\u00A0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function isLikelyNetworkError(error) {

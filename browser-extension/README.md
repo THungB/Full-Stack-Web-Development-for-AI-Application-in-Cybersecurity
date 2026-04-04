@@ -32,14 +32,6 @@ Chromium-based extension for Chrome, Coc Coc, and Opera.
   - spam/ham label + confidence
   - advice level (`safe`, `caution`, `risky`)
 
-## Settings persistence
-
-Stored in `chrome.storage.local`:
-
-- `autoScanEnabled`
-- `minWords` (default 10)
-- `panelCollapsed`
-
 ## Quick test
 
 1. Start backend API on `http://localhost:8000`.

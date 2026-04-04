@@ -111,3 +111,7 @@ app.include_router(telegram.router, tags=["telegram"])
 @app.get("/")
 def root():
     return RedirectResponse(url="/docs")
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}

@@ -10,6 +10,19 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 MIN_MESSAGE_LENGTH = 10
 
 
+def classify_advice(result: str, confidence: float):
+    label = str(result or "").lower()
+    score = float(confidence or 0)
+
+    if 0.45 <= score <= 0.55:
+        return ("UNCERTAIN", "Caution", "Model is near boundary, verify sender/link first.")
+    if label == "spam" and score >= 0.8:
+        return ("SPAM", "Risky", "Ignore this message and do not click unknown links.")
+    if label == "spam" and score >= 0.55:
+        return ("SPAM", "Caution", "Potential scam. Verify source before any action.")
+    return ("HAM", "Safe", "Looks acceptable, but still verify unusual requests.")
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
@@ -32,12 +45,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response.raise_for_status()
         data = response.json()
 
-        label = str(data["result"]).upper()
-        confidence = round(float(data["confidence"]) * 100, 1)
+        result = str(data.get("result", "ham"))
+        confidence_raw = float(data.get("confidence", 0))
+        confidence = round(confidence_raw * 100, 1)
         keywords = ", ".join(data.get("keywords", [])) or "none"
+        final_label, risk_level, advice = classify_advice(result, confidence_raw)
 
         await update.message.reply_text(
-            f"Result: {label}\nConfidence: {confidence}%\nKeywords: {keywords}"
+            f"Result: {final_label}\nConfidence: {confidence}%\nRisk: {risk_level}\nAdvice: {advice}\nKeywords: {keywords}"
         )
     except Exception as error:
         await update.message.reply_text(f"Error: {error}")

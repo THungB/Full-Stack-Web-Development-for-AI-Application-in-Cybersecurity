@@ -1,6 +1,8 @@
 import asyncio
 import csv
 import io
+import re
+import unicodedata
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from PIL import Image, UnidentifiedImageError
@@ -31,6 +33,16 @@ ALLOWED_BATCH_TYPES = {
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
 MAX_BATCH_ROWS = 500
 EXPECTED_LABELS = {"spam", "ham"}
+ZERO_WIDTH_RE = re.compile(r"[\u200B-\u200D\uFEFF]")
+WHITESPACE_RE = re.compile(r"\s+")
+
+
+def normalize_message_text(value: str):
+    normalized = unicodedata.normalize("NFKC", value or "")
+    normalized = normalized.replace("\u00A0", " ")
+    normalized = ZERO_WIDTH_RE.sub("", normalized)
+    normalized = WHITESPACE_RE.sub(" ", normalized).strip()
+    return normalized
 
 
 class ScanRequest(BaseModel):
@@ -41,7 +53,7 @@ class ScanRequest(BaseModel):
     @field_validator("message")
     @classmethod
     def validate_message(cls, value: str):
-        trimmed = value.strip()
+        trimmed = normalize_message_text(value)
         if not trimmed:
             raise ValueError("Message cannot be empty.")
         if len(trimmed) < 10:
@@ -58,7 +70,7 @@ class ScanRequest(BaseModel):
 
 
 def validate_message_text(value: str):
-    trimmed = value.strip()
+    trimmed = normalize_message_text(value)
     if not trimmed:
         raise ValueError("Message cannot be empty.")
     if len(trimmed) < 10:
