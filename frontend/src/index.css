@@ -5,9 +5,46 @@
 @tailwind utilities;
 
 :root {
-  color: #dae2fd;
-  background: #0b1326;
+  --shell: 247 249 252;
+  --surface: 255 255 255;
+  --panel: 255 255 255;
+  --elevated: 243 246 251;
+  --elevated-strong: 235 240 248;
+  --line: 189 201 218;
+  --copy: 16 26 43;
+  --muted: 76 93 120;
+  --primary: 66 91 201;
+  --primary-strong: 42 65 176;
+  --primary-soft: 33 54 154;
+  --safe: 28 176 92;
+  --safe-strong: 7 138 72;
+  --threat: 230 78 96;
+  --threat-strong: 181 30 53;
+  --warning: 214 146 23;
+  --ink: 11 20 35;
+  color: rgb(var(--copy));
+  background: rgb(var(--shell));
   font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.theme-dark {
+  --shell: 11 19 38;
+  --surface: 19 27 46;
+  --panel: 23 31 51;
+  --elevated: 34 42 61;
+  --elevated-strong: 45 52 73;
+  --line: 69 70 82;
+  --copy: 218 226 253;
+  --muted: 158 168 199;
+  --primary: 186 195 255;
+  --primary-strong: 67 85 185;
+  --primary-soft: 41 60 160;
+  --safe: 74 225 118;
+  --safe-strong: 0 185 84;
+  --threat: 255 179 173;
+  --threat-strong: 180 21 33;
+  --warning: 255 214 107;
+  --ink: 8 16 31;
 }
 
 html {
@@ -19,10 +56,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(67, 85, 185, 0.18), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(74, 225, 118, 0.08), transparent 28%),
-    linear-gradient(180deg, #0b1326 0%, #091120 100%);
-  color: #dae2fd;
+    radial-gradient(circle at top right, rgba(var(--primary-strong), 0.08), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(var(--safe), 0.06), transparent 28%),
+    linear-gradient(180deg, rgba(var(--shell), 1) 0%, rgba(var(--shell), 1) 100%);
+  color: rgb(var(--copy));
 }
 
 * {
@@ -41,7 +78,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(186, 195, 255, 0.24);
+  background: rgba(var(--primary), 0.28);
 }
 
 @layer base {
@@ -106,8 +143,8 @@ textarea {
 
   .grid-overlay {
     background-image:
-      linear-gradient(rgba(218, 226, 253, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(218, 226, 253, 0.04) 1px, transparent 1px);
+      linear-gradient(rgba(var(--copy), 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--copy), 0.04) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 }
