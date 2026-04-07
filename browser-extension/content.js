@@ -11,6 +11,7 @@
     autoScanEnabled: "autoScanEnabled",
     minWords: "minWords",
     panelCollapsed: "panelCollapsed",
+    panelVisible: "panelVisible",
   };
 
   const state = {
@@ -18,7 +19,9 @@
       autoScanEnabled: true,
       minWords: WORD_THRESHOLD_DEFAULT,
       panelCollapsed: false,
+      panelVisible: true,
     },
+
     status: "idle",
     composer: null,
     composerBadge: null,
@@ -246,7 +249,9 @@
     state.composerBadge.textContent = extraText
       ? "Spam Guard " + statusText + " - " + extraText
       : "Spam Guard " + statusText;
-    state.composerBadge.dataset.enabled = String(state.settings.autoScanEnabled);
+    state.composerBadge.dataset.enabled = String(
+      state.settings.autoScanEnabled,
+    );
   }
 
   function onInput(event) {
@@ -278,7 +283,7 @@
 
   function onClick(event) {
     const target = event.target;
-    if (!(target instanceof HTMLElement)) {
+    if (!(target instanceof Element)) {
       return;
     }
 
@@ -293,6 +298,11 @@
     if (target.closest(".spam-guard-collapse")) {
       const next = !state.settings.panelCollapsed;
       setPanelCollapsed(next);
+      return;
+    }
+    if (target.closest(".spam-guard-toggle-visibility")) {
+      const next = !state.settings.panelVisible;
+      setPanelVisible(next);
       return;
     }
 
@@ -331,7 +341,10 @@
     const direction = inferDirection(messageElement);
     const fingerprint = hashString(getChatKey() + "|" + text);
 
-    if (state.incomingSeen.has(fingerprint) || state.hoverFingerprint === fingerprint) {
+    if (
+      state.incomingSeen.has(fingerprint) ||
+      state.hoverFingerprint === fingerprint
+    ) {
       return;
     }
 
@@ -342,7 +355,10 @@
     updateComposerBadge("hover scanning");
 
     state.hoverTimer = window.setTimeout(() => {
-      if (!state.hoveredMessageEl || state.hoveredMessageEl !== messageElement) {
+      if (
+        !state.hoveredMessageEl ||
+        state.hoveredMessageEl !== messageElement
+      ) {
         return;
       }
       state.incomingSeen.add(fingerprint);
@@ -495,7 +511,10 @@
 
   function extractMessageCandidates(node) {
     const candidates = [];
-    if (!isExtensionNode(node) && matchesAny(node, selectors.messageCandidates)) {
+    if (
+      !isExtensionNode(node) &&
+      matchesAny(node, selectors.messageCandidates)
+    ) {
       candidates.push(node);
     }
     if (Array.isArray(selectors.messageCandidates)) {
@@ -663,7 +682,10 @@
 
   async function requestScan(candidate, previousError) {
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timer = window.setTimeout(
+      () => controller.abort(),
+      REQUEST_TIMEOUT_MS,
+    );
 
     try {
       const response = await fetch(API_URL, {
@@ -699,7 +721,8 @@
       direction: payload.direction,
       trigger: payload.trigger,
       resultLabel:
-        decision.resultLabelOverride || String(payload.result || "").toUpperCase(),
+        decision.resultLabelOverride ||
+        String(payload.result || "").toUpperCase(),
       confidenceLabel,
       adviceLevel: decision.level,
       adviceText: decision.text,
@@ -752,7 +775,15 @@
       '<div class="spam-guard-kicker">Spam Guard</div>',
       '<div class="spam-guard-title">Telegram Safety</div>',
       "</div>",
-      '<button class="spam-guard-collapse" type="button" aria-label="Collapse panel">-</button>',
+      '<div class="spam-guard-header-actions" style="display:flex;gap:4px">',
+      `<button class="spam-guard-toggle-visibility" type="button" aria-label="Toggle visibility" title="Show/Hide">
+        <svg fill="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px">
+          <path class="icon-eye-off" d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
+          <path class="icon-eye" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+        </svg>
+      </button>`,
+      '<button class="spam-guard-collapse" type="button" aria-label="Collapse panel" title="Collapse">-</button>',
+      "</div>",
       "</div>",
       '<div class="spam-guard-controls">',
       '<label class="spam-guard-toggle">',
@@ -797,7 +828,14 @@
     if (toggle) {
       toggle.checked = Boolean(state.settings.autoScanEnabled);
     }
-    state.panel.classList.toggle("is-collapsed", Boolean(state.settings.panelCollapsed));
+    state.panel.classList.toggle(
+      "is-collapsed",
+      Boolean(state.settings.panelCollapsed),
+    );
+    state.panel.classList.toggle(
+      "is-hidden",
+      !Boolean(state.settings.panelVisible),
+    );
     updateComposerBadge();
   }
 
@@ -824,7 +862,9 @@
         String(content.trigger || "manual").toUpperCase();
     }
     if (adviceLevel) {
-      adviceLevel.textContent = String(content.adviceLevel || "safe").toUpperCase();
+      adviceLevel.textContent = String(
+        content.adviceLevel || "safe",
+      ).toUpperCase();
       adviceLevel.dataset.level = String(content.adviceLevel || "safe");
     }
     if (adviceText) {
@@ -839,7 +879,11 @@
     }
     state.panelEls.statusBadge.textContent = status.toUpperCase();
     state.panelEls.statusBadge.dataset.status = status;
-    if (message && state.panelEls.message && !state.panelEls.message.textContent) {
+    if (
+      message &&
+      state.panelEls.message &&
+      !state.panelEls.message.textContent
+    ) {
       state.panelEls.message.textContent = message;
     }
   }
@@ -869,7 +913,20 @@
       [STORAGE_KEYS.panelCollapsed]: state.settings.panelCollapsed,
     });
     if (state.panel) {
-      state.panel.classList.toggle("is-collapsed", state.settings.panelCollapsed);
+      state.panel.classList.toggle(
+        "is-collapsed",
+        state.settings.panelCollapsed,
+      );
+    }
+  }
+
+  function setPanelVisible(value) {
+    state.settings.panelVisible = Boolean(value);
+    chrome.storage.local.set({
+      [STORAGE_KEYS.panelVisible]: state.settings.panelVisible,
+    });
+    if (state.panel) {
+      state.panel.classList.toggle("is-hidden", !state.settings.panelVisible);
     }
   }
 
@@ -878,18 +935,24 @@
       [STORAGE_KEYS.autoScanEnabled]: true,
       [STORAGE_KEYS.minWords]: WORD_THRESHOLD_DEFAULT,
       [STORAGE_KEYS.panelCollapsed]: false,
+      [STORAGE_KEYS.panelVisible]: true,
     };
 
     const result = await new Promise((resolve) => {
       chrome.storage.local.get(defaults, resolve);
     });
 
-    state.settings.autoScanEnabled = Boolean(result[STORAGE_KEYS.autoScanEnabled]);
+    state.settings.autoScanEnabled = Boolean(
+      result[STORAGE_KEYS.autoScanEnabled],
+    );
     state.settings.minWords = Math.max(
       WORD_THRESHOLD_DEFAULT,
       Number(result[STORAGE_KEYS.minWords]) || WORD_THRESHOLD_DEFAULT,
     );
-    state.settings.panelCollapsed = Boolean(result[STORAGE_KEYS.panelCollapsed]);
+    state.settings.panelCollapsed = Boolean(
+      result[STORAGE_KEYS.panelCollapsed],
+    );
+    state.settings.panelVisible = Boolean(result[STORAGE_KEYS.panelVisible]);
   }
 
   function getChatKey() {
@@ -1022,7 +1085,7 @@
         font-weight: 700;
       }
 
-      .spam-guard-collapse {
+      .spam-guard-collapse, .spam-guard-toggle-visibility {
         width: 28px;
         height: 28px;
         border: none;
@@ -1031,6 +1094,9 @@
         color: #e5ecff;
         font-size: 16px;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .spam-guard-controls {
@@ -1156,6 +1222,50 @@
           width: min(95vw, 340px);
         }
       }
+      #spam-guard-panel.is-hidden {
+        width: auto !important;
+        min-width: 0 !important;
+        border-radius: 999px !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      #spam-guard-panel.is-hidden .spam-guard-header {
+        padding: 0;
+        border: none;
+      }
+      #spam-guard-panel.is-hidden .spam-guard-title-wrap,
+      #spam-guard-panel.is-hidden .spam-guard-collapse,
+      #spam-guard-panel.is-hidden .spam-guard-controls,
+      #spam-guard-panel.is-hidden .spam-guard-body,
+      #spam-guard-panel.is-hidden .spam-guard-footer {
+        display: none !important;
+      }
+      #spam-guard-panel.is-hidden .spam-guard-toggle-visibility {
+        width: 48px;
+        height: 48px;
+        background: rgba(43, 68, 128, 0.96);
+        border: 1px solid rgba(130, 160, 255, 0.4);
+        box-shadow: 0 4px 12px rgba(2, 6, 18, 0.5);
+      }
+      #spam-guard-panel.is-hidden .spam-guard-toggle-visibility svg {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      #spam-guard-panel:not(.is-hidden) .icon-eye {
+        display: none;
+      }
+      #spam-guard-panel:not(.is-hidden) .icon-eye-off {
+        display: block;
+      }
+      #spam-guard-panel.is-hidden .icon-eye {
+        display: block;
+      }
+      #spam-guard-panel.is-hidden .icon-eye-off {
+        display: none;
+      }    
     `;
     document.head.appendChild(style);
   }

@@ -49,13 +49,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         confidence_raw = float(data.get("confidence", 0))
         confidence = round(confidence_raw * 100, 1)
         keywords = ", ".join(data.get("keywords", [])) or "none"
-        final_label, risk_level, advice = classify_advice(result, confidence_raw)
-
-        await update.message.reply_text(
-            f"Result: {final_label}\nConfidence: {confidence}%\nRisk: {risk_level}\nAdvice: {advice}\nKeywords: {keywords}"
-        )
+        final_label, risk_level, advice = classify_advice(result, confidence_raw)   
+        if final_label in ["SPAM", "UNCERTAIN"]:
+            warning_msg = (
+                f"⚠️ **Spam Alert** ⚠️\n"
+                f"We detected a suspicious message you sent.\n"
+                f"Result: {final_label}\n"
+                f"Confidence: {confidence}%\n"
+                f"Risk: {risk_level}\n"
+                f"Advice: {advice}\n"
+                f"Keywords: {keywords}"
+            )
+            try:
+                # Send DM to the user in the private bot chat
+                await context.bot.send_message(chat_id=update.effective_user.id, text=warning_msg)
+            except Exception as e:
+                # This exception happens if the user hasn't started a direct chat with the bot yet.
+                print(f"Could not send DM to user {update.effective_user.id}: {e}")
+                
     except Exception as error:
-        await update.message.reply_text(f"Error: {error}")
+        print(f"Error processing message: {error}")
 
 
 def main():
