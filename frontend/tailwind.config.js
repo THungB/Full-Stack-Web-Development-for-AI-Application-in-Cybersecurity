@@ -1,26 +1,28 @@
 /** @type {import('tailwindcss').Config} */
+const themeColor = (token) => `rgb(var(${token}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        shell: "#0b1326",
-        surface: "#131b2e",
-        panel: "#171f33",
-        elevated: "#222a3d",
-        "elevated-strong": "#2d3449",
-        line: "#454652",
-        copy: "#dae2fd",
-        muted: "#9ea8c7",
-        primary: "#bac3ff",
-        "primary-strong": "#4355b9",
-        "primary-soft": "#293ca0",
-        safe: "#4ae176",
-        "safe-strong": "#00b954",
-        threat: "#ffb3ad",
-        "threat-strong": "#b41521",
-        warning: "#ffd66b",
-        ink: "#08101f"
+        shell: themeColor("--shell"),
+        surface: themeColor("--surface"),
+        panel: themeColor("--panel"),
+        elevated: themeColor("--elevated"),
+        "elevated-strong": themeColor("--elevated-strong"),
+        line: themeColor("--line"),
+        copy: themeColor("--copy"),
+        muted: themeColor("--muted"),
+        primary: themeColor("--primary"),
+        "primary-strong": themeColor("--primary-strong"),
+        "primary-soft": themeColor("--primary-soft"),
+        safe: themeColor("--safe"),
+        "safe-strong": themeColor("--safe-strong"),
+        threat: themeColor("--threat"),
+        "threat-strong": themeColor("--threat-strong"),
+        warning: themeColor("--warning"),
+        ink: themeColor("--ink"),
       },
       boxShadow: {
         panel: "0 28px 70px rgba(3, 7, 18, 0.34)",

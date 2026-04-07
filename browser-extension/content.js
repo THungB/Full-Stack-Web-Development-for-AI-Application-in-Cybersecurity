@@ -24,6 +24,7 @@
     composerBadge: null,
     composerHighlighter: null,
     panel: null,
+    panelLauncher: null,
     panelEls: {},
     routeKey: getRouteKey(),
     queue: [],
@@ -293,6 +294,11 @@
     if (target.closest(".spam-guard-collapse")) {
       const next = !state.settings.panelCollapsed;
       setPanelCollapsed(next);
+      return;
+    }
+
+    if (target.closest(".spam-guard-launcher")) {
+      setPanelCollapsed(false);
       return;
     }
 
@@ -775,8 +781,16 @@
       "</div>",
     ].join("");
 
+    const launcher = document.createElement("button");
+    launcher.type = "button";
+    launcher.className = "spam-guard-launcher";
+    launcher.setAttribute("aria-label", "Open Spam Guard");
+    launcher.textContent = "SG";
+
     document.body.appendChild(panel);
+    document.body.appendChild(launcher);
     state.panel = panel;
+    state.panelLauncher = launcher;
     state.panelEls = {
       autoScanToggle: panel.querySelector(".spam-guard-toggle-input"),
       statusBadge: panel.querySelector(".spam-guard-status-badge"),
@@ -798,6 +812,12 @@
       toggle.checked = Boolean(state.settings.autoScanEnabled);
     }
     state.panel.classList.toggle("is-collapsed", Boolean(state.settings.panelCollapsed));
+    if (state.panelLauncher) {
+      state.panelLauncher.classList.toggle(
+        "is-visible",
+        Boolean(state.settings.panelCollapsed),
+      );
+    }
     updateComposerBadge();
   }
 
@@ -870,6 +890,9 @@
     });
     if (state.panel) {
       state.panel.classList.toggle("is-collapsed", state.settings.panelCollapsed);
+    }
+    if (state.panelLauncher) {
+      state.panelLauncher.classList.toggle("is-visible", state.settings.panelCollapsed);
     }
   }
 
@@ -995,7 +1018,13 @@
       }
 
       #spam-guard-panel.is-collapsed .spam-guard-body,
-      #spam-guard-panel.is-collapsed .spam-guard-footer {
+      #spam-guard-panel.is-collapsed .spam-guard-footer,
+      #spam-guard-panel.is-collapsed .spam-guard-header,
+      #spam-guard-panel.is-collapsed .spam-guard-controls {
+        display: none;
+      }
+
+      #spam-guard-panel.is-collapsed {
         display: none;
       }
 
@@ -1148,12 +1177,44 @@
         color: rgba(255, 171, 189, 0.96);
       }
 
+      .spam-guard-launcher {
+        position: fixed;
+        right: 6px;
+        top: 94px;
+        z-index: 2147483647;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(130, 160, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(9, 17, 35, 0.96);
+        color: #e5ecff;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 12px 28px rgba(2, 6, 18, 0.45);
+        backdrop-filter: blur(8px);
+      }
+
+      .spam-guard-launcher.is-visible {
+        display: inline-flex;
+      }
+
       @media (max-width: 960px) {
         #spam-guard-panel {
           right: 10px;
           top: auto;
           bottom: 10px;
           width: min(95vw, 340px);
+        }
+
+        .spam-guard-launcher {
+          right: 8px;
+          top: auto;
+          bottom: 12px;
         }
       }
     `;
@@ -1165,6 +1226,9 @@
       return false;
     }
     if (node.id === "spam-guard-panel" || node.id === "spam-guard-style") {
+      return true;
+    }
+    if (node.classList.contains("spam-guard-launcher")) {
       return true;
     }
     if (node.classList.contains("spam-guard-composer-badge")) {

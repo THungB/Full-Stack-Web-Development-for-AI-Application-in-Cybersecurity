@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   ClockCounterClockwise,
   GearSix,
   List,
   MagnifyingGlass,
+  Moon,
   Question,
   Scan,
   ShieldCheckered,
   SignOut,
+  Sun,
   SquaresFour,
   X,
 } from "@phosphor-icons/react";
@@ -30,6 +32,7 @@ const searchCopy = {
   "/scan": "Search detection playbooks or active scans...",
   "/history": "Search records...",
 };
+const THEME_STORAGE_KEY = "ui-theme";
 
 function NavItem({ item, mobile = false, onClick }) {
   const Icon = item.icon;
@@ -67,8 +70,24 @@ function NavItem({ item, mobile = false, onClick }) {
 
 export default function AppShell({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    return window.localStorage.getItem(THEME_STORAGE_KEY) === "dark"
+      ? "dark"
+      : "light";
+  });
   const location = useLocation();
   const placeholder = searchCopy[location.pathname] || searchCopy["/"];
+  const isDark = theme === "dark";
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("theme-dark", isDark);
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [isDark, theme]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-shell text-copy">
@@ -178,6 +197,15 @@ export default function AppShell({ children }) {
                 aria-label="Settings"
               >
                 <GearSix size={18} />
+              </button>
+              <button
+                type="button"
+                className="btn-secondary-dark h-11 w-11 rounded-xl px-0"
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+              >
+                {isDark ? <Sun size={18} weight="fill" /> : <Moon size={18} weight="fill" />}
               </button>
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-line/20 bg-elevated-strong text-sm font-bold text-primary">
                 AS
