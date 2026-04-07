@@ -75,27 +75,31 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="app-panel p-6 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-copy/45">
-            Threat Overview
-          </p>
-          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-copy sm:text-5xl">
-            One dashboard for every spam signal
+      <section className="enter-fade grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="app-panel p-5 sm:p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copy/50">
+              Dashboard
+            </p>
+            <span className="status-chip border-primary/25 bg-primary/10 text-primary">
+              Live monitoring
+            </span>
+          </div>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-copy sm:text-3xl">
+            Threat operations control center
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-8 text-muted">
-            Real-time monitoring across website, Telegram, OCR, extension, and
-            batch workflows. This React dashboard mirrors the new shell while
-            staying truthful to the live API data available today.
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">
+            Track ingestion health, classification quality, and confidence shifts across
+            Website, Telegram, OCR, Extension, and Batch workflows.
           </p>
         </div>
-        <div className="xl:pl-2">
+        <div>
           <SystemStatus />
         </div>
       </section>
 
       {error ? (
-        <div className="app-panel border border-threat/20 bg-threat/10 p-5 text-threat">
+        <div className="app-panel border border-threat/35 bg-threat/10 p-5 text-threat">
           <p className="font-semibold">Dashboard data could not be loaded.</p>
           <p className="mt-2 text-sm text-copy/75">
             Check that FastAPI is running and that `VITE_API_BASE_URL` points to
@@ -106,7 +110,7 @@ export default function Dashboard() {
 
       <SummaryCards stats={stats} highConfidenceShare={highConfidenceShare} />
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+      <section className="enter-fade grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <SpamRatioChart
           spamCount={stats.spam_count}
           hamCount={stats.ham_count}
@@ -117,7 +121,7 @@ export default function Dashboard() {
       <ConfidenceChart data={stats.buckets} />
 
       {loading ? (
-        <div className="app-panel p-5">
+        <div className="app-panel enter-fade p-5">
           <p className="text-sm font-medium text-muted">
             Loading the latest chart data from the backend...
           </p>

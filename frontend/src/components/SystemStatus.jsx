@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  CloudWarning,
-  Lightning,
-  SpinnerGap,
-} from "@phosphor-icons/react";
+import { CloudWarning, Lightning, SpinnerGap } from "@phosphor-icons/react";
 import { getHealth } from "../services/api";
 
 const sourceItems = ["Website", "Telegram", "Extension", "OCR", "Batch"];
@@ -54,20 +50,12 @@ export default function SystemStatus({ variant = "pill" }) {
   const isOnline = status === "online";
   const isOffline = status === "offline";
   const toneClass = isOnline
-    ? "border-safe/20 bg-safe/10 text-safe shadow-glow"
+    ? "border-safe/30 bg-safe/10 text-safe shadow-glow"
     : isOffline
-      ? "border-threat/20 bg-threat/10 text-threat"
-      : "border-primary/20 bg-primary/10 text-primary";
-  const dotClass = isOnline
-    ? "bg-safe"
-    : isOffline
-      ? "bg-threat"
-      : "bg-primary";
-  const HeroIcon = isOnline
-    ? Lightning
-    : isOffline
-      ? CloudWarning
-      : SpinnerGap;
+      ? "border-threat/30 bg-threat/10 text-threat"
+      : "border-primary/30 bg-primary/10 text-primary";
+  const dotClass = isOnline ? "bg-safe" : isOffline ? "bg-threat" : "bg-primary";
+  const HeroIcon = isOnline ? Lightning : isOffline ? CloudWarning : SpinnerGap;
   const heroTitle = isOnline
     ? "Optimal Security"
     : isOffline
@@ -81,7 +69,7 @@ export default function SystemStatus({ variant = "pill" }) {
 
   if (variant === "hero") {
     return (
-      <section className="app-panel glass-panel flex min-h-[136px] items-center gap-4 p-5 shadow-glow">
+      <section className="app-panel glass-panel enter-fade flex min-h-[136px] items-center gap-4 p-5">
         <div>
           <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-safe/10 text-safe">
             <HeroIcon
@@ -112,7 +100,7 @@ export default function SystemStatus({ variant = "pill" }) {
 
   return (
     <div
-      className={`glass-panel flex flex-wrap items-center gap-4 rounded-2xl border px-4 py-3 ${toneClass}`}
+      className={`app-panel glass-panel enter-fade flex flex-wrap items-center gap-4 rounded-2xl border px-4 py-3 ${toneClass}`}
     >
       <div className="flex items-center gap-2">
         <span className={`h-2.5 w-2.5 rounded-full ${dotClass}`} />
@@ -122,11 +110,8 @@ export default function SystemStatus({ variant = "pill" }) {
       </div>
       <div className="hidden h-5 w-px bg-line/30 sm:block" />
       <div className="text-xs text-copy/80">
-        API:{" "}
-        <span className="font-semibold text-copy">
-          {buttonCopy.replace("API ", "")}
-        </span>
-        {" • "}Endpoint: <span className="font-semibold text-copy">{endpoint}</span>
+        API: <span className="font-semibold text-copy">{buttonCopy.replace("API ", "")}</span>
+        {" | "}Endpoint: <span className="font-semibold text-copy">{endpoint}</span>
       </div>
       <div className="hidden min-[1320px]:flex min-[1320px]:flex-wrap min-[1320px]:gap-2">
         {sourceItems.map((item) => (

@@ -18,11 +18,16 @@ function StatCard({
   tone,
   barClass,
   to,
+  delay = "0ms",
 }) {
   const Wrapper = to ? Link : "article";
 
   return (
-    <Wrapper to={to} className={`metric-card group block ${to ? "cursor-pointer" : ""}`}>
+    <Wrapper
+      to={to}
+      className={`metric-card stagger-item group block ${to ? "cursor-pointer" : ""}`}
+      style={{ animationDelay: delay }}
+    >
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -67,51 +72,60 @@ export default function SummaryCards({ stats, highConfidenceShare = 0 }) {
   const total = stats.spam_count + stats.ham_count;
   const spamRate = total ? stats.spam_count / total : 0;
   const hamRate = total ? stats.ham_count / total : 0;
+  const cards = [
+    {
+      label: "Total Scans",
+      value: formatCompactNumber(total),
+      hint: "Combined live volume across all connected ingress channels.",
+      chip: spamRate > 0.3 ? "Elevated intake" : "Stable intake",
+      icon: ChartBar,
+      progress: total ? 0.82 : 0,
+      tone: "border-primary/25 bg-primary/10 text-primary",
+      barClass: "bg-primary",
+    },
+    {
+      label: "Spam Detected",
+      value: formatCompactNumber(stats.spam_count),
+      hint: "Messages currently classified as suspicious by the model.",
+      chip: spamRate > 0.4 ? "High activity" : "Threat review",
+      icon: WarningCircle,
+      progress: spamRate,
+      tone: "border-threat/30 bg-threat/10 text-threat",
+      barClass: "bg-threat",
+      to: "/history?filter=spam",
+    },
+    {
+      label: "Legitimate (Ham)",
+      value: formatCompactNumber(stats.ham_count),
+      hint: "Traffic verified as safe based on the current classifier.",
+      chip: "Verified traffic",
+      icon: ShieldCheck,
+      progress: hamRate,
+      tone: "border-safe/30 bg-safe/10 text-safe",
+      barClass: "bg-safe",
+      to: "/history?filter=ham",
+    },
+    {
+      label: "High-confidence share",
+      value: formatPercent(highConfidenceShare),
+      hint: "Signals landing inside the 80-100% confidence bucket.",
+      chip: "80-100% bucket",
+      icon: Gauge,
+      progress: highConfidenceShare,
+      tone: "border-primary/25 bg-primary/10 text-primary",
+      barClass: "bg-primary",
+    },
+  ];
 
   return (
     <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <StatCard
-        label="Total Scans"
-        value={formatCompactNumber(total)}
-        hint="Combined live volume across all connected ingress channels."
-        chip={spamRate > 0.3 ? "Elevated intake" : "Stable intake"}
-        icon={ChartBar}
-        progress={total ? 0.82 : 0}
-        tone="border-primary/20 bg-primary/10 text-primary"
-        barClass="bg-primary"
-      />
-      <StatCard
-        label="Spam Detected"
-        value={formatCompactNumber(stats.spam_count)}
-        hint="Messages currently classified as suspicious by the model."
-        chip={spamRate > 0.4 ? "High activity" : "Threat review"}
-        icon={WarningCircle}
-        progress={spamRate}
-        tone="border-threat/20 bg-threat/10 text-threat"
-        barClass="bg-threat"
-        to="/history?filter=spam"
-      />
-      <StatCard
-        label="Legitimate (Ham)"
-        value={formatCompactNumber(stats.ham_count)}
-        hint="Traffic verified as safe based on the current classifier."
-        chip="Verified traffic"
-        icon={ShieldCheck}
-        progress={hamRate}
-        tone="border-safe/20 bg-safe/10 text-safe"
-        barClass="bg-safe"
-        to="/history?filter=ham"
-      />
-      <StatCard
-        label="High-confidence share"
-        value={formatPercent(highConfidenceShare)}
-        hint="Signals landing inside the 80-100% confidence bucket."
-        chip="80-100% bucket"
-        icon={Gauge}
-        progress={highConfidenceShare}
-        tone="border-primary/20 bg-primary/10 text-primary"
-        barClass="bg-primary"
-      />
+      {cards.map((card, index) => (
+        <StatCard
+          key={card.label}
+          {...card}
+          delay={`${120 + index * 70}ms`}
+        />
+      ))}
     </section>
   );
 }

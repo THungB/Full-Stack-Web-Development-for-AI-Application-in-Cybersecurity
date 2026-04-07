@@ -194,15 +194,18 @@ export default function History() {
 
   return (
     <div className="space-y-6">
-      <section className="app-panel p-6 sm:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <section className="app-panel enter-fade p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-4xl font-extrabold tracking-tight text-copy sm:text-5xl">
-              Review and export scanned records
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copy/50">
+              Historical Ledger
+            </p>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-copy sm:text-3xl">
+              Review, filter, and export scan records
             </h2>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-muted">
-              Complete historical ledger of intercepted traffic and model
-              validations, with query-aware routing from the dashboard summary cards.
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-muted">
+              Query-aware timeline of detections with confidence sorting and CSV export
+              from the active view.
             </p>
           </div>
 
@@ -246,7 +249,7 @@ export default function History() {
       </section>
 
       <section className="app-panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line/10 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line/20 px-5 py-4">
           <div className="flex flex-wrap items-center gap-3">
             <label className="relative">
               <select
@@ -337,7 +340,7 @@ export default function History() {
       <section className="app-panel flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 text-sm text-muted">
           <span>Rows per page: {PAGE_SIZE}</span>
-          <span>•</span>
+          <span>|</span>
           <span>
             Page {page} of {totalPages}
           </span>
@@ -359,7 +362,7 @@ export default function History() {
               type="button"
               className={`h-10 min-w-[2.5rem] rounded-xl px-3 text-sm font-semibold transition ${
                 visiblePage === page
-                  ? "bg-primary-strong text-copy"
+                  ? "bg-primary-strong text-white"
                   : "bg-elevated text-copy/75 hover:text-copy"
               }`}
               onClick={() => setPage(visiblePage)}

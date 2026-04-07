@@ -25,9 +25,9 @@ export default {
         ink: themeColor("--ink"),
       },
       boxShadow: {
-        panel: "0 28px 70px rgba(3, 7, 18, 0.34)",
-        glow: "0 0 28px rgba(74, 225, 118, 0.14)",
-        "glow-primary": "0 0 30px rgba(186, 195, 255, 0.16)"
+        panel: "0 16px 34px rgba(15, 23, 42, 0.08), 0 2px 10px rgba(15, 23, 42, 0.06)",
+        glow: "0 0 22px rgba(19, 156, 84, 0.2)",
+        "glow-primary": "0 0 24px rgba(58, 86, 198, 0.2)"
       },
       backgroundImage: {
         "shell-radial":

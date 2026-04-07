@@ -5,22 +5,22 @@
 @tailwind utilities;
 
 :root {
-  --shell: 247 249 252;
+  --shell: 244 247 252;
   --surface: 255 255 255;
   --panel: 255 255 255;
-  --elevated: 243 246 251;
-  --elevated-strong: 235 240 248;
-  --line: 189 201 218;
-  --copy: 16 26 43;
-  --muted: 76 93 120;
-  --primary: 66 91 201;
-  --primary-strong: 42 65 176;
-  --primary-soft: 33 54 154;
-  --safe: 28 176 92;
-  --safe-strong: 7 138 72;
-  --threat: 230 78 96;
-  --threat-strong: 181 30 53;
-  --warning: 214 146 23;
+  --elevated: 247 250 255;
+  --elevated-strong: 239 244 252;
+  --line: 198 208 224;
+  --copy: 17 29 48;
+  --muted: 79 96 122;
+  --primary: 58 86 198;
+  --primary-strong: 43 67 176;
+  --primary-soft: 32 53 147;
+  --safe: 19 156 84;
+  --safe-strong: 6 123 66;
+  --threat: 209 60 83;
+  --threat-strong: 162 28 47;
+  --warning: 185 124 16;
   --ink: 11 20 35;
   color: rgb(var(--copy));
   background: rgb(var(--shell));
@@ -56,8 +56,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(var(--primary-strong), 0.08), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(var(--safe), 0.06), transparent 28%),
+    radial-gradient(circle at top right, rgba(var(--primary-strong), 0.1), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(var(--safe), 0.05), transparent 30%),
     linear-gradient(180deg, rgba(var(--shell), 1) 0%, rgba(var(--shell), 1) 100%);
   color: rgb(var(--copy));
 }
@@ -106,35 +106,35 @@ textarea {
 
 @layer components {
   .app-panel {
-    @apply rounded-3xl border border-line/15 bg-panel/90 shadow-panel backdrop-blur-xl;
+    @apply rounded-3xl border border-line/30 bg-panel shadow-panel;
   }
 
   .app-panel-soft {
-    @apply rounded-3xl border border-line/15 bg-surface/85 shadow-panel backdrop-blur-xl;
+    @apply rounded-3xl border border-line/25 bg-surface shadow-panel;
   }
 
   .glass-panel {
-    @apply bg-elevated/70 backdrop-blur-[20px];
+    @apply bg-elevated/90;
   }
 
   .field-dark {
-    @apply w-full rounded-2xl border border-line/20 bg-elevated-strong/90 px-4 py-3 text-sm text-copy outline-none transition placeholder:text-muted/55 focus:border-primary/25 focus:ring-0;
+    @apply w-full rounded-2xl border border-line/30 bg-elevated px-4 py-3 text-sm text-copy outline-none transition placeholder:text-muted/60 focus:border-primary/45 focus:ring-0;
   }
 
   .btn-primary-dark {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-strong px-5 py-3 text-sm font-semibold text-copy transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-strong px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary-dark {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-line/20 bg-elevated/90 px-5 py-3 text-sm font-semibold text-copy transition hover:bg-elevated-strong disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-line/30 bg-surface px-5 py-3 text-sm font-semibold text-copy transition hover:bg-elevated disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .status-chip {
-    @apply inline-flex items-center gap-2 rounded-full border border-line/20 bg-elevated px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
+    @apply inline-flex items-center gap-2 rounded-full border border-line/35 bg-elevated px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
   }
 
   .metric-card {
-    @apply relative overflow-hidden rounded-3xl border border-line/15 bg-surface/85 p-5 shadow-panel backdrop-blur-xl transition hover:bg-elevated/90;
+    @apply relative overflow-hidden rounded-3xl border border-line/25 bg-surface p-5 shadow-panel transition duration-200 hover:-translate-y-0.5 hover:border-line/45 hover:bg-elevated/70;
   }
 
   .table-row-divider {
@@ -143,8 +143,28 @@ textarea {
 
   .grid-overlay {
     background-image:
-      linear-gradient(rgba(var(--copy), 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(var(--copy), 0.04) 1px, transparent 1px);
+      linear-gradient(rgba(var(--copy), 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--copy), 0.025) 1px, transparent 1px);
     background-size: 28px 28px;
+  }
+
+  .enter-fade {
+    animation: enter-fade 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .stagger-item {
+    animation: enter-fade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

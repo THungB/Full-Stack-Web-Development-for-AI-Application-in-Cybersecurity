@@ -118,7 +118,7 @@ function BatchPreview({ response, state, error }) {
 
       <div className="mt-5 rounded-[20px] border border-line/10 bg-surface/65 p-4 text-sm text-muted">
         Default source: <span className="font-semibold text-copy">{summary.default_source}</span>
-        {" • "}Stored results:{" "}
+        {" | "}Stored results:{" "}
         <span className="font-semibold text-copy">
           {summary.stored_results ? "Yes" : "No"}
         </span>
@@ -227,18 +227,25 @@ export default function Scan() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="app-panel p-6 sm:p-8">
-          <h2 className="text-4xl font-extrabold tracking-tight text-copy sm:text-5xl">
-            Inspect suspicious messages
+      <section className="enter-fade grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="app-panel p-5 sm:p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copy/50">
+              Scan Workspace
+            </p>
+            <span className="status-chip border-primary/25 bg-primary/10 text-primary">
+              Real-time classification
+            </span>
+          </div>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-copy sm:text-3xl">
+            Inspect and triage suspicious messages
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-8 text-muted">
-            Paste message contents or upload documentation to run real-time
-            heuristics and pattern recognition against your global threat
-            database.
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">
+            Run text, OCR, or batch analysis and review model output before forwarding
+            results to the historical ledger.
           </p>
         </div>
-        <SystemStatus variant="hero" />
+        <SystemStatus />
       </section>
 
       <div className="flex flex-wrap gap-3">
@@ -257,7 +264,7 @@ export default function Scan() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex rounded-2xl border border-line/15 bg-surface p-1">
+        <div className="inline-flex rounded-xl border border-line/30 bg-surface p-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
 
@@ -265,9 +272,9 @@ export default function Scan() {
               <button
                 key={tab.key}
                 type="button"
-                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                   activeTab === tab.key
-                    ? "bg-elevated-strong text-primary"
+                    ? "bg-primary/10 text-primary"
                     : "text-copy/60 hover:text-copy"
                 }`}
                 onClick={() => activateTab(tab.key)}
@@ -283,8 +290,8 @@ export default function Scan() {
           type="button"
           className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
             showTelegram
-              ? "border-primary/20 bg-primary/10 text-primary"
-              : "border-line/20 bg-surface text-copy/70 hover:text-copy"
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-line/30 bg-surface text-copy/70 hover:text-copy"
           }`}
           onClick={() => setShowTelegram((value) => !value)}
         >
