@@ -4,6 +4,8 @@ import {
   CaretRight,
   ClockCounterClockwise,
   Trash,
+  Plus,
+  Minus
 } from "@phosphor-icons/react";
 import StatusBadge from "./StatusBadge";
 import {
@@ -80,9 +82,10 @@ export default function HistoryTable({
                 <button
                   type="button"
                   onClick={() => toggleExpanded(record.id)}
-                  className="btn-secondary-dark flex-1 rounded-xl px-4 py-2"
+                  className="btn-secondary-dark flex items-center justify-center rounded-xl p-2 text-primary hover:bg-primary/10"
+                  title={expanded ? "Collapse Message" : "Expand Message"}
                 >
-                  {expanded ? "Collapse" : "Expand"}
+                  {expanded ? <Minus size={20} weight="bold" /> : <Plus size={20} weight="bold" />}
                 </button>
                 {(record.result === "spam" || record.result === "needs_review") && (
                   <button
@@ -147,12 +150,11 @@ export default function HistoryTable({
                       className="group text-left leading-7 text-copy"
                     >
                       {expanded ? message : truncateText(message, 100)}
-                      <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                        {expanded ? "Collapse" : "Expand"}
-                        <CaretRight
-                          size={12}
-                          className={`transition ${expanded ? "rotate-90" : ""}`}
-                        />
+                      <span 
+                        className="ml-2 inline-flex items-center justify-center p-1 rounded-md bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                        title={expanded ? "Collapse Message" : "Expand Message"}
+                      >
+                        {expanded ? <Minus size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
                       </span>
                     </button>
                   </td>

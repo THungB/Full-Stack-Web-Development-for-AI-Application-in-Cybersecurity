@@ -50,6 +50,8 @@ class ScanRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     source: str = Field(default="website")
     username: str | None = Field(default=None, max_length=255)
+    chat_id: str | None = Field(default=None, max_length=50) 
+    user_id: str | None = Field(default=None, max_length=50) 
 
     @field_validator("message")
     @classmethod
@@ -105,6 +107,8 @@ async def create_scan_record(
     message: str,
     source: str,
     username: str | None = None,
+    chat_id: str | None = None,
+    user_id: str | None = None,
     prediction: tuple | None = None,
 ):
     """
@@ -124,6 +128,8 @@ async def create_scan_record(
         confidence=round(float(confidence), 4),
         source=source,
         username=username,
+        chat_id=chat_id,
+        user_id=user_id,
         keywords=",".join(keywords),
         ai_label=ai_label,
     )
@@ -146,6 +152,8 @@ async def scan_message(
             message=payload.message,
             source=payload.source,
             username=payload.username,
+            chat_id=payload.chat_id,
+            user_id=payload.user_id,
             prediction=prediction,
         )
         return serialize_scan(record)

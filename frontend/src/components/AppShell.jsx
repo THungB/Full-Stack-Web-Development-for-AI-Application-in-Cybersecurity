@@ -6,6 +6,7 @@ import {
   List,
   MagnifyingGlass,
   Moon,
+  PaperPlaneRight,
   Question,
   Scan,
   ShieldCheckered,
@@ -20,6 +21,7 @@ const primaryNav = [
   { label: "Dashboard", to: "/", icon: SquaresFour },
   { label: "Scan", to: "/scan", icon: Scan },
   { label: "History", to: "/history", icon: ClockCounterClockwise },
+  { label: "Telegram", to: "/telegram", icon: PaperPlaneRight },
 ];
 
 const utilityNav = [
@@ -31,6 +33,7 @@ const searchCopy = {
   "/": "Search signals, IPs, or threat actors...",
   "/scan": "Search detection playbooks or active scans...",
   "/history": "Search records...",
+  "/telegram": "Search Telegram users or spam messages...",
 };
 
 const THEME_STORAGE_KEY = "ui-theme";
@@ -106,10 +109,10 @@ export default function AppShell({ children }) {
           </div>
           <div>
             <h1 className="text-[1.7rem] font-extrabold tracking-tight text-primary">
-              Aegis Sentinel
+              Tech Nova
             </h1>
             <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-copy/45">
-              Threat Intelligence
+              Spam Detector
             </p>
           </div>
         </div>
@@ -157,7 +160,7 @@ export default function AppShell({ children }) {
 
             <div className="min-w-0 lg:hidden">
               <p className="font-display text-lg font-extrabold text-primary">
-                Aegis Sentinel
+                Tech Nova
               </p>
             </div>
 

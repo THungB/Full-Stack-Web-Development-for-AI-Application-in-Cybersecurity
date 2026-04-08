@@ -5,6 +5,7 @@ import AppShell from "./components/AppShell";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Scan = lazy(() => import("./pages/Scan"));
 const History = lazy(() => import("./pages/History"));
+const Telegram = lazy(() => import("./pages/Telegram"));
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/history" element={<History />} />
+          <Route path="/telegram" element={<Telegram />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

@@ -11,7 +11,6 @@ import OcrScanner from "../components/OcrScanner";
 import ResultCard from "../components/ResultCard";
 import ScanForm from "../components/ScanForm";
 import SystemStatus from "../components/SystemStatus";
-import TelegramInbox from "../components/TelegramInbox";
 import { useToast } from "../components/ToastProvider";
 import { scanMessage } from "../services/api";
 import { formatPercent, formatInteger } from "../utils/format";
@@ -129,7 +128,6 @@ function BatchPreview({ response, state, error }) {
 
 export default function Scan() {
   const [activeTab, setActiveTab] = useState("text");
-  const [showTelegram, setShowTelegram] = useState(false);
   const [result, setResult] = useState(null);
   const [resultState, setResultState] = useState("idle");
   const [resultError, setResultError] = useState("");
@@ -285,19 +283,6 @@ export default function Scan() {
             );
           })}
         </div>
-
-        <button
-          type="button"
-          className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            showTelegram
-              ? "border-primary/30 bg-primary/10 text-primary"
-              : "border-line/30 bg-surface text-copy/70 hover:text-copy"
-          }`}
-          onClick={() => setShowTelegram((value) => !value)}
-        >
-          <ChatTeardropText size={16} />
-          Telegram Inbox
-        </button>
       </div>
 
       <section className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
@@ -334,8 +319,6 @@ export default function Scan() {
       {activeTab === "batch" && batchResponse?.items?.length ? (
         <BatchResultsTable items={batchResponse.items} />
       ) : null}
-
-      {showTelegram ? <TelegramInbox showToast={showToast} /> : null}
     </div>
   );
 }

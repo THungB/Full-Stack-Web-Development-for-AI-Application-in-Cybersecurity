@@ -19,7 +19,6 @@ engine = create_async_engine(
     # echo=True,  # Uncomment to log all SQL queries during development
 )
 
-# FIX: AsyncSession + async_sessionmaker instead of sync Session + sessionmaker.
 SessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -30,10 +29,6 @@ SessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
-
-# FIX: get_db is now an async generator yielding AsyncSession.
-# All route files that use `db: Session = Depends(get_db)` must be updated to
-# `db: AsyncSession = Depends(get_db)` and use `await db.execute(...)` syntax.
 async def get_db():
     async with SessionLocal() as db:
         try:
@@ -44,6 +39,7 @@ async def get_db():
 
 async def migrate_add_ai_label(engine_to_use=None):
     """Add scans.ai_label for existing SQLite DBs that predate this column."""
+    """Add new migration columns for existing SQLite DBs that predate them."""
     active_engine = engine_to_use or engine
     async with active_engine.connect() as conn:
         result = await conn.execute(text("PRAGMA table_info(scans)"))
@@ -51,3 +47,10 @@ async def migrate_add_ai_label(engine_to_use=None):
         if "ai_label" not in columns:
             await conn.execute(text("ALTER TABLE scans ADD COLUMN ai_label TEXT"))
             await conn.commit()
+
+        if "chat_id" not in columns:
+            await conn.execute(text("ALTER TABLE scans ADD COLUMN chat_id TEXT"))
+        if "user_id" not in columns:
+            await conn.execute(text("ALTER TABLE scans ADD COLUMN user_id TEXT"))
+            
+        await conn.commit()
