@@ -106,10 +106,10 @@ export default function AppShell({ children }) {
           </div>
           <div>
             <h1 className="text-[1.7rem] font-extrabold tracking-tight text-primary">
-              Aegis Sentinel
+              Tech Nova
             </h1>
             <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-copy/45">
-              Threat Intelligence
+              Spam Detector
             </p>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function AppShell({ children }) {
 
             <div className="min-w-0 lg:hidden">
               <p className="font-display text-lg font-extrabold text-primary">
-                Aegis Sentinel
+                Tech Nova
               </p>
             </div>
 
