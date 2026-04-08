@@ -28,7 +28,7 @@ function downloadSampleCsv() {
 export default function BatchTester({ onSuccess, onError }) {
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [storeResults, setStoreResults] = useState(false);
+  const [storeResults, setStoreResults] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const handleRunBatch = async () => {

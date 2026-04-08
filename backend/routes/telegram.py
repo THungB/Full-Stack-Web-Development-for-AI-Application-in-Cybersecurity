@@ -1,5 +1,6 @@
 import requests
 import os
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select, delete
@@ -47,6 +48,96 @@ async def get_telegram_messages(
         "total": total,
         "page": page,
         "limit": limit,
+    }
+
+
+def _month_start(value: datetime) -> datetime:
+    return value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _shift_month(value: datetime, months: int) -> datetime:
+    year = value.year + (value.month - 1 + months) // 12
+    month = (value.month - 1 + months) % 12 + 1
+    return value.replace(year=year, month=month, day=1)
+
+
+@router.get("/telegram/traffic-report")
+async def get_traffic_report(
+    source_scope: str = Query(default="all"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return spam frequency chart data from DB for Telegram dashboard.
+    - source_scope=all: aggregate all sources (website/ocr/batch/telegram/...)
+    - source_scope=telegram: Telegram only
+    """
+    normalized_scope = source_scope.strip().lower()
+    if normalized_scope not in {"all", "telegram"}:
+        raise HTTPException(status_code=400, detail="source_scope must be 'all' or 'telegram'.")
+
+    now_utc = datetime.now(timezone.utc)
+
+    # Last 7 days (including today)
+    start_day = (now_utc - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_stmt = (
+        select(
+            func.date(Scan.timestamp).label("date_key"),
+            func.count(Scan.id).label("spam_count"),
+        )
+        .where(Scan.result == "spam", Scan.timestamp >= start_day)
+        .group_by(func.date(Scan.timestamp))
+    )
+    if normalized_scope == "telegram":
+        day_stmt = day_stmt.where(Scan.source == TELEGRAM_SOURCE)
+
+    day_rows = await db.execute(day_stmt)
+    day_map = {str(row.date_key): int(row.spam_count or 0) for row in day_rows.all()}
+
+    day_data = []
+    for offset in range(7):
+        day_dt = (start_day + timedelta(days=offset)).date()
+        day_key = day_dt.isoformat()
+        day_data.append(
+            {
+                "name": day_dt.strftime("%a"),
+                "spam": day_map.get(day_key, 0),
+                "date": day_key,
+            }
+        )
+
+    # Last 6 months (including current month)
+    current_month = _month_start(now_utc)
+    first_month = _shift_month(current_month, -5)
+    month_stmt = (
+        select(
+            func.strftime("%Y-%m", Scan.timestamp).label("month_key"),
+            func.count(Scan.id).label("spam_count"),
+        )
+        .where(Scan.result == "spam", Scan.timestamp >= first_month)
+        .group_by(func.strftime("%Y-%m", Scan.timestamp))
+    )
+    if normalized_scope == "telegram":
+        month_stmt = month_stmt.where(Scan.source == TELEGRAM_SOURCE)
+
+    month_rows = await db.execute(month_stmt)
+    month_map = {str(row.month_key): int(row.spam_count or 0) for row in month_rows.all()}
+
+    month_data = []
+    for offset in range(6):
+        month_dt = _shift_month(first_month, offset)
+        month_key = month_dt.strftime("%Y-%m")
+        month_data.append(
+            {
+                "name": month_dt.strftime("%b"),
+                "spam": month_map.get(month_key, 0),
+                "month": month_key,
+            }
+        )
+
+    return {
+        "scope": normalized_scope,
+        "day": day_data,
+        "month": month_data,
     }
 
 

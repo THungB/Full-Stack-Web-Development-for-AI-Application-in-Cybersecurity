@@ -19,7 +19,15 @@ import {
 import {
   AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid
 } from "recharts";
-import axios from "axios";
+import {
+  getTelegramMessages,
+  getTelegramSpammers,
+  getTelegramSettings,
+  updateTelegramSettings,
+  manualTelegramBan,
+  manualTelegramUnban,
+  getTelegramTrafficReport,
+} from "../services/api";
 
 function DoubleBezelCard({ children, className = "" }) {
   return (
@@ -37,6 +45,8 @@ export default function Telegram() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [trafficDay, setTrafficDay] = useState([]);
+  const [trafficMonth, setTrafficMonth] = useState([]);
   
   // Automation Settings State
   const [settings, setSettings] = useState({ max_strikes: 3, ban_duration_hours: 0 });
@@ -60,14 +70,17 @@ export default function Telegram() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [msgRes, spammerRes, settingsRes] = await Promise.all([
-          axios.get("http://localhost:8000/telegram/messages?limit=50"),
-          axios.get("http://localhost:8000/telegram/spammers"),
-          axios.get("http://localhost:8000/telegram/settings")
+        const [msgRes, spammerRes, settingsRes, trafficRes] = await Promise.all([
+          getTelegramMessages(1, 50, ""),
+          getTelegramSpammers(),
+          getTelegramSettings(),
+          getTelegramTrafficReport("all"),
         ]);
         setData(msgRes.data.data || []);
         setTopSpammers(spammerRes.data.data || []);
         setSettings(settingsRes.data);
+        setTrafficDay(trafficRes.data.day || []);
+        setTrafficMonth(trafficRes.data.month || []);
       } catch (error) {
         console.error("Error fetching Telegram Hub data:", error);
       } finally {
@@ -81,7 +94,7 @@ export default function Telegram() {
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      await axios.put("http://localhost:8000/telegram/settings", settings);
+      await updateTelegramSettings(settings);
       // Give a tiny delay for visual UI feedback
       setTimeout(() => setIsSaving(false), 500); 
     } catch (err) {
@@ -92,7 +105,7 @@ export default function Telegram() {
 
   const handleManualBan = async (chat_id, user_id) => {
     try {
-      await axios.post("http://localhost:8000/telegram/ban", { chat_id, user_id });
+      await manualTelegramBan({ chat_id, user_id });
       // Visually remove them from the leaderboard
       setTopSpammers(prev => prev.filter(s => s.user_id !== user_id));
     } catch (err) {
@@ -102,7 +115,7 @@ export default function Telegram() {
 
    const handleManualUnban = async (chat_id, user_id) => {
     try {
-      await axios.post("http://localhost:8000/telegram/unban", { chat_id, user_id });
+      await manualTelegramUnban({ chat_id, user_id });
       // Visually remove them from the dirty leaderboard
       setTopSpammers(prev => prev.filter(s => s.user_id !== user_id));
     } catch (err) {
@@ -121,21 +134,7 @@ export default function Telegram() {
   }).format(new Date());
   
 const [chartView, setChartView] = useState("day");
-  const chartDataDay = [
-    { name: "Mon", spam: 2 },
-    { name: "Tue", spam: 4 },
-    { name: "Wed", spam: Math.max(1, totalSpam - 6) },
-    { name: "Thu", spam: Math.max(0, totalSpam - 4) },
-    { name: "Fri", spam: totalSpam },
-  ];
-  const chartDataMonth = [
-    { name: "Jan", spam: 18 },
-    { name: "Feb", spam: 24 },
-    { name: "Mar", spam: 15 },
-    { name: "Apr", spam: totalSpam * 5 + 12 },
-    { name: "May", spam: totalSpam * 2 }
-  ];
-  const chartData = chartView === "day" ? chartDataDay : chartDataMonth;
+  const chartData = chartView === "day" ? trafficDay : trafficMonth;
 
   const uniqueUsers = [...new Set(data.filter(m => m.username).map(m => m.username))];
   const activeUser = uniqueUsers.length > 0 ? `@${uniqueUsers[0]}` : "Awaiting Telemetry";

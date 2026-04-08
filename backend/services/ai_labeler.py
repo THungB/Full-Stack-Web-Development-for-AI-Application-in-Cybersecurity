@@ -40,7 +40,7 @@ async def get_ai_label(
                 headers={
                     "Authorization": f"Bearer {settings.openrouter_api_key}",
                     "HTTP-Referer": "http://localhost:5173",
-                    "X-Title": "Aegis Sentinel Spam Detector",
+                    "X-Title": "Tech Nova's Spam Detector",
                     "Content-Type": "application/json",
                 },
                 json={

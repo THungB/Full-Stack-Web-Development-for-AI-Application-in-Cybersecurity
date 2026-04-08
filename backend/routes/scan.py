@@ -229,7 +229,7 @@ async def scan_ocr(
 async def scan_batch(
     request: Request,
     file: UploadFile = File(...),
-    store_results: str | None = Form(default="false"),
+    store_results: str | None = Form(default="true"),
     default_source: str | None = Form(default="batch"),
     db: AsyncSession = Depends(get_db),
 ):
@@ -245,7 +245,7 @@ async def scan_batch(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    should_store = parse_bool_form_value(store_results, default=False)
+    should_store = parse_bool_form_value(store_results, default=True)
 
     contents = await file.read()
     if not contents:

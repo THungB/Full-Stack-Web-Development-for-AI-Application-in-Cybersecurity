@@ -26,7 +26,7 @@ export const scanOcr = (formData) =>
 
 export const scanBatch = ({
   file,
-  storeResults = false,
+  storeResults = true,
   defaultSource = "batch",
 }) => {
   const formData = new FormData();
@@ -69,3 +69,19 @@ export const getTelegramMessages = (page = 1, limit = 20, filter = "") =>
 
 export const deleteTelegramRecord = (id) =>
   api.delete(`/telegram/messages/${id}`);
+
+export const getTelegramSpammers = () => api.get("/telegram/spammers");
+
+export const getTelegramSettings = () => api.get("/telegram/settings");
+
+export const updateTelegramSettings = (payload) =>
+  api.put("/telegram/settings", payload);
+
+export const manualTelegramBan = (payload) => api.post("/telegram/ban", payload);
+
+export const manualTelegramUnban = (payload) => api.post("/telegram/unban", payload);
+
+export const getTelegramTrafficReport = (sourceScope = "all") =>
+  api.get("/telegram/traffic-report", {
+    params: { source_scope: sourceScope },
+  });
