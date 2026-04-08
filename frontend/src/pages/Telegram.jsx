@@ -1,6 +1,7 @@
 // frontend/src/pages/Telegram.jsx
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   ShieldWarning,
   PaperPlaneRight,
@@ -12,10 +13,11 @@ import {
   X,
   ShieldSlash,
   Gavel,
-  Wrench
+  Wrench,
+  Clock
 } from "@phosphor-icons/react";
 import {
-  AreaChart, Area, ResponsiveContainer, Tooltip,
+  AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid
 } from "recharts";
 import axios from "axios";
 
@@ -39,6 +41,21 @@ export default function Telegram() {
   // Automation Settings State
   const [settings, setSettings] = useState({ max_strikes: 3, ban_duration_hours: 0 });
   const [isSaving, setIsSaving] = useState(false);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000); 
+    return () => clearInterval(timer);
+  }, []);
+  const liveTimeString = currentTime.toLocaleString("en-GB", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit"
+  }).replace(",", ""); // Format: DD/MM/YY HH:MM
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -95,14 +112,30 @@ export default function Telegram() {
 
   const spamMessages = data.filter((msg) => msg.result === "spam");
   const totalSpam = spamMessages.length;
+
+  const todayDate = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok", // This locks it strictly to GMT+7
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(new Date());
   
-  const chartData = [
+const [chartView, setChartView] = useState("day");
+  const chartDataDay = [
     { name: "Mon", spam: 2 },
     { name: "Tue", spam: 4 },
     { name: "Wed", spam: Math.max(1, totalSpam - 6) },
     { name: "Thu", spam: Math.max(0, totalSpam - 4) },
     { name: "Fri", spam: totalSpam },
   ];
+  const chartDataMonth = [
+    { name: "Jan", spam: 18 },
+    { name: "Feb", spam: 24 },
+    { name: "Mar", spam: 15 },
+    { name: "Apr", spam: totalSpam * 5 + 12 },
+    { name: "May", spam: totalSpam * 2 }
+  ];
+  const chartData = chartView === "day" ? chartDataDay : chartDataMonth;
 
   const uniqueUsers = [...new Set(data.filter(m => m.username).map(m => m.username))];
   const activeUser = uniqueUsers.length > 0 ? `@${uniqueUsers[0]}` : "Awaiting Telemetry";
@@ -128,16 +161,6 @@ export default function Telegram() {
               Telegram Control Panel
             </h1>
           </div>
-          
-          <div className="flex items-center gap-4 rounded-[2rem] border border-line/25 bg-elevated/70 py-3 px-6">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-inner">
-              <PaperPlaneRight weight="fill" size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-copy">{activeUser}</p>
-              <p className="text-xs text-copy/60 font-medium">Primary Target</p>
-            </div>
-          </div>
         </motion.div>
 
         {/* 2. Asymmetrical Bento Layout Base */}
@@ -149,19 +172,15 @@ export default function Telegram() {
             className="md:col-span-4"
           >
             <DoubleBezelCard className="p-8 justify-between">
-              <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-                  <ShieldWarning size={20} weight="duotone" />
-                </div>
-                <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-red-500 bg-red-500/10 px-3 py-1 rounded-full">
-                  Total Captured
-                </span>
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-copy">Total Scan</h2>
               </div>
               <div>
                 <p className="text-6xl font-mono font-bold tracking-tighter text-copy">
                   {isLoading ? "--" : totalSpam}
                 </p>
-                <p className="text-sm font-medium text-copy/60 mt-2">Threats Neutralized Today</p>
+                <p className="text-sm font-medium text-copy/60 mt-2">Total Spam Messages Detected  on {todayDate} <span className="opacity-75">(GMT+7)</span>
+                </p>
               </div>
             </DoubleBezelCard>
           </motion.div>
@@ -172,26 +191,51 @@ export default function Telegram() {
             className="md:col-span-8 md:row-span-2"
           >
             <DoubleBezelCard className="p-8 pb-0">
-              <div className="flex justify-between items-end mb-8 relative z-10">
-                <div>
-                  <h2 className="text-xl font-semibold tracking-tight text-copy">Daily Traffic Report</h2>
-                  <p className="text-sm text-copy/50 mt-1">Spam frequency over the last 5 days</p>
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="mt-2">
+                  <h2 className="text-xl font-semibold tracking-tight text-copy">Traffic Report</h2>
+                  <p className="text-sm text-copy/50 mt-1">Spam frequency over time</p>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-500 text-sm font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full">
-                  <TrendUp size={16} weight="bold" />
-                  <span>Stable</span>
+                
+                <div className="flex flex-col items-end gap-2">
+                  {/* --- LIVE CLOCK PILL --- */}
+                  <div className="flex items-center gap-2 text-copy/70 text-xs font-semibold uppercase tracking-wider bg-elevated px-3 py-1.5 rounded-full border border-line/30">
+                    <Clock size={14} weight="bold" />
+                    <span>{liveTimeString}</span>
+                  </div>
+                  
+                  {/* --- DAY / MONTH TOGGLE BUTTONS --- */}
+                  <div className="flex items-center gap-1 bg-elevated p-1 rounded-lg border border-line/30 mt-1">
+                    <button 
+                      onClick={() => setChartView("day")}
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${chartView === "day" ? "bg-primary text-white" : "text-copy/60 hover:text-copy"}`}
+                    >
+                      Day
+                    </button>
+                    <button 
+                      onClick={() => setChartView("month")}
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${chartView === "month" ? "bg-primary text-white" : "text-copy/60 hover:text-copy"}`}
+                    >
+                      Month
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex-1 w-full h-full min-h-[220px] -mx-4">
+
+              <div className="flex-1 w-full h-[220px] -mx-2 mt-4 relative z-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
+                  <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 25 }}>
                     <defs>
                       <linearGradient id="colorSpam" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
+                    
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--line) / 0.2)" vertical={false} />
+                    <XAxis dataKey="name" stroke="rgb(var(--copy) / 0.4)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis stroke="rgb(var(--copy) / 0.4)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                    
                     <Tooltip
                       contentStyle={tooltipStyle}
                       itemStyle={{ color: "rgb(var(--copy))" }}
@@ -250,6 +294,14 @@ export default function Telegram() {
                </div>
 
                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <Link 
+                    to="/history"
+                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
+                  >
+                    <Clock size={22} className="text-emerald-500" />
+                    <span className="text-sm font-medium text-copy">View History</span>
+                  </Link>
+                  {/* ... Existing View Top Spammers Button ... */}
                   <button 
                     onClick={() => setIsModalOpen(true)}
                     className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
