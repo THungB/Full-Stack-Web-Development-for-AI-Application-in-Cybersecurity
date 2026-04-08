@@ -15,6 +15,7 @@ class Scan(Base):
     source = Column(String(50), nullable=False, index=True)
     username = Column(String(255), nullable=True)
     keywords = Column(Text, nullable=True)
+    ai_label = Column(Text, nullable=True)
     timestamp = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

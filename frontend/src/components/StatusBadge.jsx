@@ -14,6 +14,12 @@ export default function StatusBadge({ value }) {
           icon: WarningCircle,
           label: "Spam",
         }
+      : normalized === "needs_review"
+        ? {
+            className: "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
+            icon: Question,
+            label: "Review",
+          }
       : normalized === "ham"
         ? {
             className: "border-safe/20 bg-safe/10 text-safe",

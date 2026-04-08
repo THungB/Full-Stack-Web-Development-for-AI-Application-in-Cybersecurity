@@ -730,39 +730,36 @@
   }
 
   function mapDecision(result, confidence) {
-    const normalizedResult = String(result || "").toLowerCase();
-    const normalizedConfidence = Number(confidence) || 0;
+    const c = Number(confidence) || 0;
+    const r = String(result || "").toLowerCase();
 
-    if (normalizedConfidence >= 0.45 && normalizedConfidence <= 0.55) {
-      return {
-        level: "caution",
-        resultLabelOverride: "UNCERTAIN",
-        text: "Caution: Model confidence is near boundary. Verify sender and link before acting.",
-      };
-    }
-
-    if (normalizedResult === "spam" && normalizedConfidence >= 0.8) {
+    if (r === "spam" && c >= 0.8) {
       return {
         level: "risky",
         resultLabelOverride: "SPAM",
-        text: "Risky: Ignore this message and avoid clicking links.",
+        text: "Risky: High-confidence spam. Ignore and avoid all links.",
       };
     }
-    if (
-      normalizedResult === "spam" &&
-      normalizedConfidence >= 0.55 &&
-      normalizedConfidence < 0.8
-    ) {
+    if (r === "spam" && c >= 0.6) {
       return {
         level: "caution",
         resultLabelOverride: "SPAM",
-        text: "Caution: Verify source and link destination before clicking.",
+        text: "Caution: Likely spam. Verify source before clicking any link.",
       };
     }
+
+    if (r === "needs_review" || (c > 0.4 && c < 0.6)) {
+      return {
+        level: "caution",
+        resultLabelOverride: "REVIEW",
+        text: "Uncertain: Score is borderline. Verify sender identity before acting.",
+      };
+    }
+
     return {
       level: "safe",
       resultLabelOverride: "HAM",
-      text: "Safe: Message looks acceptable, but still verify unusual requests.",
+      text: "Safe: Message looks legitimate. Stay cautious with unknown links.",
     };
   }
 
@@ -851,6 +848,7 @@
     }
     if (result) {
       result.textContent = content.resultLabel || "-";
+      result.dataset.level = content.adviceLevel || "safe";
     }
     if (confidence) {
       confidence.textContent = content.confidenceLabel || "-";
@@ -1179,6 +1177,11 @@
       .spam-guard-advice-level[data-level="safe"] { color: #66e6b1; }
       .spam-guard-advice-level[data-level="caution"] { color: #ffd96a; }
       .spam-guard-advice-level[data-level="risky"] { color: #ff8aa7; }
+      .spam-guard-advice-level[data-level="review"] { color: #ffd96a; }
+
+      .spam-guard-result[data-level="risky"] { background: rgba(255,100,130,0.2); color: #ff8aa7; }
+      .spam-guard-result[data-level="caution"] { background: rgba(255,200,60,0.18); color: #ffd96a; }
+      .spam-guard-result[data-level="safe"] { background: rgba(80,210,150,0.18); color: #66e6b1; }
 
       .spam-guard-advice-text {
         margin-top: 4px;

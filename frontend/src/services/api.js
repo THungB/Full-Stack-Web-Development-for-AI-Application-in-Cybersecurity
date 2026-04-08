@@ -54,6 +54,7 @@ export const getStats = () => api.get("/stats");
 export const getHealth = () => api.get("/health");
 
 export const deleteRecord = (id) => api.delete(`/history/${id}`);
+export const regenerateLabel = (id) => api.post(`/history/${id}/regenerate-label`);
 
 export default api;
 

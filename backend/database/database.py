@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
@@ -39,3 +40,14 @@ async def get_db():
             yield db
         finally:
             await db.close()
+
+
+async def migrate_add_ai_label(engine_to_use=None):
+    """Add scans.ai_label for existing SQLite DBs that predate this column."""
+    active_engine = engine_to_use or engine
+    async with active_engine.connect() as conn:
+        result = await conn.execute(text("PRAGMA table_info(scans)"))
+        columns = [row[1] for row in result.fetchall()]
+        if "ai_label" not in columns:
+            await conn.execute(text("ALTER TABLE scans ADD COLUMN ai_label TEXT"))
+            await conn.commit()

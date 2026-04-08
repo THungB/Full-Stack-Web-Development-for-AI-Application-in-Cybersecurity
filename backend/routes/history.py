@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_db
 from database.schema import Scan
 from routes.common import serialize_scan
+from services.ai_labeler import get_ai_label
 
 
 router = APIRouter()
@@ -60,3 +61,18 @@ async def delete_history_record(record_id: int, db: AsyncSession = Depends(get_d
     await db.delete(record)
     await db.commit()
     return {"success": True}
+
+
+@router.post("/history/{record_id}/regenerate-label")
+async def regenerate_ai_label(record_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Scan).where(Scan.id == record_id))
+    record = result.scalar_one_or_none()
+
+    if record is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+
+    ai_label = await get_ai_label(record.message, confidence=1.0, force=True)
+    record.ai_label = ai_label
+    await db.commit()
+    await db.refresh(record)
+    return serialize_scan(record)

@@ -8,12 +8,12 @@ import {
 import { useSearchParams } from "react-router-dom";
 import HistoryTable from "../components/HistoryTable";
 import { useToast } from "../components/ToastProvider";
-import { deleteRecord, getHistory } from "../services/api";
+import { deleteRecord, getHistory, regenerateLabel } from "../services/api";
 import { formatInteger } from "../utils/format";
 
 const PAGE_SIZE = 20;
 const VALID_SORTS = new Set(["desc", "asc", "conf_desc", "conf_asc"]);
-const VALID_RESULTS = new Set(["", "spam", "ham"]);
+const VALID_RESULTS = new Set(["", "spam", "ham", "needs_review"]);
 const VALID_SOURCES = new Set(["", "website", "telegram", "extension", "ocr", "batch"]);
 
 function parsePositiveInt(value, fallback = 1) {
@@ -28,6 +28,7 @@ function downloadCsv(records) {
     "source",
     "result",
     "confidence",
+    "ai_label",
     "message",
     "keywords",
   ];
@@ -39,6 +40,7 @@ function downloadCsv(records) {
       record.source,
       record.result,
       record.confidence,
+      `"${String(record.ai_label || "").replaceAll('"', '""')}"`,
       `"${String(record.message || "").replaceAll('"', '""')}"`,
       `"${String(
         Array.isArray(record.keywords) ? record.keywords.join(", ") : record.keywords || "",
@@ -192,6 +194,27 @@ export default function History() {
     }
   };
 
+  const handleRegenLabel = async (id) => {
+    try {
+      const response = await regenerateLabel(id);
+      setRecords((current) =>
+        current.map((record) => (record.id === id ? response.data : record)),
+      );
+      showToast({
+        tone: "success",
+        title: "Label regenerated",
+        description: `AI label for #${id} has been updated.`,
+      });
+    } catch (requestError) {
+      showToast({
+        tone: "error",
+        title: "Regenerate failed",
+        description:
+          requestError.response?.data?.detail || "Could not regenerate label.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="app-panel enter-fade p-5 sm:p-6">
@@ -262,6 +285,7 @@ export default function History() {
               >
                 <option value="">All results</option>
                 <option value="spam">Spam only</option>
+                <option value="needs_review">Needs Review</option>
                 <option value="ham">Ham only</option>
               </select>
             </label>
@@ -333,7 +357,11 @@ export default function History() {
         ) : null}
 
         <div className="px-0 py-0">
-          <HistoryTable records={sortedRecords} onDelete={handleDelete} />
+          <HistoryTable
+            records={sortedRecords}
+            onDelete={handleDelete}
+            onRegenLabel={handleRegenLabel}
+          />
         </div>
       </section>
 

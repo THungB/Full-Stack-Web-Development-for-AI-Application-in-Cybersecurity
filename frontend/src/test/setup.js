@@ -22,6 +22,7 @@ vi.mock("@phosphor-icons/react", () => {
 
   return {
     __esModule: true,
+    ArrowsClockwise: createIcon("ArrowsClockwise"),
     ArrowUpRight: createIcon("ArrowUpRight"),
     Broom: createIcon("Broom"),
     CaretRight: createIcon("CaretRight"),

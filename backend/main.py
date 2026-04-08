@@ -3,15 +3,16 @@ import logging
 import os
 import threading
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi.responses import RedirectResponse
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from database.database import Base, SessionLocal, engine
+from database.database import Base, SessionLocal, engine, migrate_add_ai_label
 from routes import history, scan, stats
 from routes import telegram
 from services.demo_seed import seed_demo_data_if_empty
@@ -68,6 +69,8 @@ async def lifespan(_: FastAPI):
     # Initialize async database tables at startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await migrate_add_ai_label(engine)
     
     # Seed demo data if database is empty
     async with SessionLocal() as db:

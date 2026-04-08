@@ -14,5 +14,6 @@ def serialize_scan(record: Scan):
         "source": record.source,
         "username": record.username,
         "keywords": keywords,
+        "ai_label": record.ai_label,
         "timestamp": record.timestamp.isoformat() if record.timestamp else None,
     }

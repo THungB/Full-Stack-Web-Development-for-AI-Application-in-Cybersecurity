@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ArrowsClockwise,
   CaretRight,
   ClockCounterClockwise,
   Trash,
@@ -12,7 +13,11 @@ import {
   truncateText,
 } from "../utils/format";
 
-export default function HistoryTable({ records, onDelete }) {
+export default function HistoryTable({
+  records,
+  onDelete,
+  onRegenLabel = () => {},
+}) {
   const [expandedRows, setExpandedRows] = useState({});
 
   const toggleExpanded = (id) => {
@@ -62,6 +67,14 @@ export default function HistoryTable({ records, onDelete }) {
                 <span className="status-chip bg-elevated-strong/80 text-copy/80">
                   Confidence {formatConfidence(record.confidence)}
                 </span>
+                <span className="status-chip max-w-full truncate bg-elevated-strong/80 text-copy/70">
+                  AI Label:{" "}
+                  {record.ai_label
+                    ? record.ai_label.length > 80
+                      ? `${record.ai_label.slice(0, 77)}...`
+                      : record.ai_label
+                    : "-"}
+                </span>
               </div>
               <div className="mt-4 flex gap-3">
                 <button
@@ -71,6 +84,17 @@ export default function HistoryTable({ records, onDelete }) {
                 >
                   {expanded ? "Collapse" : "Expand"}
                 </button>
+                {(record.result === "spam" || record.result === "needs_review") && (
+                  <button
+                    type="button"
+                    title="Regenerate AI Label"
+                    className="btn-secondary-dark rounded-xl px-4 py-2 text-primary hover:bg-primary/10"
+                    onClick={() => onRegenLabel(record.id)}
+                    aria-label={`Regenerate AI label for record ${record.id}`}
+                  >
+                    <ArrowsClockwise size={16} />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn-secondary-dark rounded-xl border-threat/20 px-4 py-2 text-threat hover:bg-threat/10"
@@ -89,7 +113,7 @@ export default function HistoryTable({ records, onDelete }) {
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="table-row-divider bg-panel/40 text-left">
-              {["Timestamp", "Source", "Message", "Result", "Confidence", "Action"].map(
+              {["Timestamp", "Source", "Message", "Result", "Confidence", "AI Label", "Action"].map(
                 (header) => (
                   <th
                     key={header}
@@ -138,15 +162,42 @@ export default function HistoryTable({ records, onDelete }) {
                   <td className="px-6 py-5 align-top text-sm font-semibold text-copy/80">
                     {formatConfidence(record.confidence)}
                   </td>
+                  <td className="min-w-[200px] max-w-[260px] px-6 py-5 align-top">
+                    {record.ai_label ? (
+                      <span
+                        title={record.ai_label}
+                        className="inline-block text-xs leading-5 text-copy/65"
+                      >
+                        {record.ai_label.length > 80
+                          ? `${record.ai_label.slice(0, 77)}...`
+                          : record.ai_label}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-copy/25">-</span>
+                    )}
+                  </td>
                   <td className="px-6 py-5 align-top">
-                    <button
-                      type="button"
-                      className="btn-secondary-dark rounded-xl border-threat/20 px-3 py-2 text-threat hover:bg-threat/10"
-                      onClick={() => onDelete(record.id)}
-                      aria-label={`Delete record ${record.id}`}
-                    >
-                      <Trash size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {(record.result === "spam" || record.result === "needs_review") && (
+                        <button
+                          type="button"
+                          title="Regenerate AI Label"
+                          className="btn-secondary-dark rounded-xl px-3 py-2 text-primary hover:bg-primary/10"
+                          onClick={() => onRegenLabel(record.id)}
+                          aria-label={`Regenerate AI label for record ${record.id}`}
+                        >
+                          <ArrowsClockwise size={16} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-secondary-dark rounded-xl border-threat/20 px-3 py-2 text-threat hover:bg-threat/10"
+                        onClick={() => onDelete(record.id)}
+                        aria-label={`Delete record ${record.id}`}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

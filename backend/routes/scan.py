@@ -13,6 +13,7 @@ from database.database import get_db
 from database.schema import Scan
 from ml.predictor import predict
 from routes.common import serialize_scan
+from services.ai_labeler import get_ai_label
 
 try:
     import pytesseract
@@ -115,6 +116,7 @@ async def create_scan_record(
         prediction = await asyncio.to_thread(predict, message)
 
     result, confidence, keywords = prediction
+    ai_label = await get_ai_label(message, float(confidence))
 
     record = Scan(
         message=message,
@@ -123,6 +125,7 @@ async def create_scan_record(
         source=source,
         username=username,
         keywords=",".join(keywords),
+        ai_label=ai_label,
     )
     db.add(record)
     await db.commit()        # FIX: async commit
@@ -299,6 +302,7 @@ async def scan_batch(
     failed_count    = len(failed_rows)
     spam_count      = 0
     ham_count       = 0
+    needs_review_count = 0
     correct_count   = 0
     labeled_count   = 0
     confusion = {
@@ -325,8 +329,10 @@ async def scan_batch(
         processed_count += 1
         if predicted_label == "spam":
             spam_count += 1
-        else:
+        elif predicted_label == "ham":
             ham_count += 1
+        else:
+            needs_review_count += 1
 
         is_correct = None
         if raw_expected:
@@ -405,6 +411,7 @@ async def scan_batch(
             "failed":         failed_count,
             "spam_count":     spam_count,
             "ham_count":      ham_count,
+            "needs_review_count": needs_review_count,
             "labeled_count":  labeled_count,
             "correct_count":  correct_count,
             "accuracy":       (correct_count / labeled_count) if labeled_count else None,
