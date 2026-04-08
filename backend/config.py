@@ -143,9 +143,5 @@ class Settings(BaseSettings):
         default="1.0.0",
         description="API version.",
     )
-    
-
-
-
 # Global settings instance — use this throughout the application
 settings = Settings()

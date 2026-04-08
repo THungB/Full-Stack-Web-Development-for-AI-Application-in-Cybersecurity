@@ -71,7 +71,12 @@ async def regenerate_ai_label(record_id: int, db: AsyncSession = Depends(get_db)
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
 
-    ai_label = await get_ai_label(record.message, confidence=1.0, force=True)
+    ai_label = await get_ai_label(
+        record.message,
+        confidence=1.0,
+        result=record.result,
+        force=True,
+    )
     record.ai_label = ai_label
     await db.commit()
     await db.refresh(record)

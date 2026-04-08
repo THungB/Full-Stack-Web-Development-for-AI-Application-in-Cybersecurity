@@ -171,7 +171,7 @@ async def get_bot_settings(db: AsyncSession = Depends(get_db)):
     
     return {
         "max_strikes": int(settings_dict.get("max_strikes", 3)),
-        "ban_duration_hours": int(settings_dict.get("ban_duration_hours", 0)) # 0 = Forever
+        "ban_duration_hours": int(settings_dict.get("ban_duration_hours", 0))
     }
 @router.put("/telegram/settings")
 async def update_bot_settings(payload: SettingsUpdate, db: AsyncSession = Depends(get_db)):

@@ -14,8 +14,8 @@ class Scan(Base):
     confidence = Column(Float, nullable=False)
     source = Column(String(50), nullable=False, index=True)
     username = Column(String(255), nullable=True)
-    chat_id = Column(String(50), nullable=True)  # New tracking column
-    user_id = Column(String(50), nullable=True)  # New tracking column
+    chat_id = Column(String(50), nullable=True)
+    user_id = Column(String(50), nullable=True)
     keywords = Column(Text, nullable=True)
     ai_label = Column(Text, nullable=True)
     timestamp = Column(

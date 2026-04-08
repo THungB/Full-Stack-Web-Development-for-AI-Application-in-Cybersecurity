@@ -81,6 +81,11 @@ export default function ResultCard({ result, state = "idle", error = "" }) {
     ? "border-threat/20 bg-threat/10 text-threat"
     : "border-safe/20 bg-safe/10 text-safe";
   const HeroIcon = isSpam ? ShieldWarning : ShieldCheck;
+  const aiLabelTone = String(result.ai_label || "").toUpperCase().startsWith("CANH BAO")
+    ? "border-threat/25 bg-threat/10 text-threat"
+    : String(result.ai_label || "").toUpperCase().startsWith("LUU Y")
+      ? "border-[#f59e0b]/25 bg-[#f59e0b]/10 text-[#b45309]"
+      : "border-line/20 bg-elevated-strong/80 text-copy/70";
 
   return (
     <section className="app-panel min-h-[28rem] p-6">
@@ -120,6 +125,14 @@ export default function ResultCard({ result, state = "idle", error = "" }) {
         <span className="status-chip">Record ID {result.id ?? "Pending"}</span>
         {result.username ? <span className="status-chip">@{result.username}</span> : null}
       </div>
+
+      {result.ai_label ? (
+        <div className="mt-4">
+          <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${aiLabelTone}`}>
+            AI Label: {result.ai_label}
+          </span>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4">
         <div>

@@ -15,6 +15,20 @@ import {
   truncateText,
 } from "../utils/format";
 
+function getAiLabelTone(aiLabel) {
+  const normalized = String(aiLabel || "").toUpperCase();
+  if (normalized.startsWith("CANH BAO")) {
+    return "border-threat/25 bg-threat/10 text-threat";
+  }
+  if (normalized.startsWith("LUU Y")) {
+    return "border-[#f59e0b]/25 bg-[#f59e0b]/10 text-[#b45309]";
+  }
+  if (normalized.startsWith("AN TOAN")) {
+    return "border-safe/25 bg-safe/10 text-safe";
+  }
+  return "border-line/20 bg-elevated-strong/80 text-copy/70";
+}
+
 export default function HistoryTable({
   records,
   onDelete,
@@ -71,11 +85,13 @@ export default function HistoryTable({
                 </span>
                 <span className="status-chip max-w-full truncate bg-elevated-strong/80 text-copy/70">
                   AI Label:{" "}
-                  {record.ai_label
-                    ? record.ai_label.length > 80
-                      ? `${record.ai_label.slice(0, 77)}...`
-                      : record.ai_label
-                    : "-"}
+                  <span className={`rounded-full border px-2 py-1 ${getAiLabelTone(record.ai_label)}`}>
+                    {record.ai_label
+                      ? record.ai_label.length > 80
+                        ? `${record.ai_label.slice(0, 77)}...`
+                        : record.ai_label
+                      : "-"}
+                  </span>
                 </span>
               </div>
               <div className="mt-4 flex gap-3">
@@ -168,7 +184,7 @@ export default function HistoryTable({
                     {record.ai_label ? (
                       <span
                         title={record.ai_label}
-                        className="inline-block text-xs leading-5 text-copy/65"
+                        className={`inline-block rounded-full border px-2 py-1 text-xs leading-5 ${getAiLabelTone(record.ai_label)}`}
                       >
                         {record.ai_label.length > 80
                           ? `${record.ai_label.slice(0, 77)}...`

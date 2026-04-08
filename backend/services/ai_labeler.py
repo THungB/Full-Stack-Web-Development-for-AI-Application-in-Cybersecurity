@@ -1,4 +1,6 @@
-"""Generate compact AI labels for suspicious spam messages via OpenRouter."""
+"""Generate compact AI labels with warning-friendly prefixes."""
+
+import re
 
 import httpx
 
@@ -8,28 +10,57 @@ from config import settings
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 SYSTEM_PROMPT = (
-    "You are a spam analysis tool. "
-    "Identify spam keywords or phrases in the given message. "
-    "Reply in English with one short sentence under 100 characters. "
-    "Format: 'Contains keywords: <word1>, <word2>' or "
-    "'No clear spam keywords detected'. "
-    "Do not explain and do not add extra text."
+    "You summarize spam-analysis evidence. "
+    "Return one ultra-short phrase only (max 8 words), no punctuation at end, no markdown."
 )
+
+URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+WS_RE = re.compile(r"\s+")
+
+PREFIX_BY_RESULT = {
+    "spam": "WARNING",
+    "needs_review": "ATTENSION",
+    "ham": "SAFE",
+}
+
+
+def _compact_text(value: str, max_words: int = 8) -> str:
+    text = URL_RE.sub("", value or "")
+    text = WS_RE.sub(" ", text).strip()
+    if not text:
+        return "Unknown content"
+    words = text.split(" ")
+    return " ".join(words[:max_words]).strip()
+
+
+def _format_warning_label(
+    *,
+    result: str | None,
+    base_text: str,
+    confidence: float,
+) -> str:
+    normalized_result = (result or "needs_review").strip().lower()
+    prefix = PREFIX_BY_RESULT.get(normalized_result, "ATTENSION")
+    short_text = _compact_text(base_text, max_words=8)
+    if short_text.lower() == "Unknown content":
+        short_text = f"confidence {confidence:.2f}"
+    return f"{prefix}: {short_text}"[:120]
 
 
 async def get_ai_label(
     message: str,
     confidence: float,
+    result: str | None = None,
     *,
     force: bool = False,
 ) -> str | None:
-    """Call OpenRouter and return a short AI label, or None when skipped/failed."""
+    """Return compact AI label with warning prefix."""
     if not settings.ai_label_enabled:
-        return None
-    if not settings.openrouter_api_key:
-        return None
+        return _format_warning_label(result=result, base_text=message, confidence=confidence)
     if not force and confidence < settings.ai_label_min_confidence:
-        return None
+        return _format_warning_label(result=result, base_text=message, confidence=confidence)
+    if not settings.openrouter_api_key:
+        return _format_warning_label(result=result, base_text=message, confidence=confidence)
 
     prompt = f"Message: {(message or '')[:500]}"
 
@@ -49,7 +80,7 @@ async def get_ai_label(
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": prompt},
                     ],
-                    "max_tokens": 60,
+                    "max_tokens": 30,
                     "temperature": 0.1,
                 },
             )
@@ -61,6 +92,11 @@ async def get_ai_label(
                 .get("content", "")
                 .strip()
             )
-            return label[:200] if label else None
+            base_text = label if label else message
+            return _format_warning_label(
+                result=result,
+                base_text=base_text,
+                confidence=confidence,
+            )
     except Exception:
-        return None
+        return _format_warning_label(result=result, base_text=message, confidence=confidence)

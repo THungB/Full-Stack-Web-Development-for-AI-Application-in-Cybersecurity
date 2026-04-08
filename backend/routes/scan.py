@@ -120,7 +120,7 @@ async def create_scan_record(
         prediction = await asyncio.to_thread(predict, message)
 
     result, confidence, keywords = prediction
-    ai_label = await get_ai_label(message, float(confidence))
+    ai_label = await get_ai_label(message, float(confidence), result=result)
 
     record = Scan(
         message=message,
@@ -134,8 +134,8 @@ async def create_scan_record(
         ai_label=ai_label,
     )
     db.add(record)
-    await db.commit()        # FIX: async commit
-    await db.refresh(record) # FIX: async refresh
+    await db.commit()
+    await db.refresh(record)
     return record
 
 
