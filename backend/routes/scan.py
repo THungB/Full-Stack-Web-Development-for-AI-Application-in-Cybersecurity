@@ -1,3 +1,11 @@
+"""Scan endpoints for text, OCR, and batch workflows.
+
+This module is the primary ingestion surface for spam detection. It handles:
+1) Validation and normalization of client payloads.
+2) Prediction execution (CPU-bound model inference).
+3) Optional persistence to the historical ledger with AI labels.
+"""
+
 import asyncio
 import csv
 import io
@@ -39,6 +47,7 @@ WHITESPACE_RE = re.compile(r"\s+")
 
 
 def normalize_message_text(value: str):
+    """Normalize incoming text to reduce Unicode/whitespace ambiguity."""
     normalized = unicodedata.normalize("NFKC", value or "")
     normalized = normalized.replace("\u00A0", " ")
     normalized = ZERO_WIDTH_RE.sub("", normalized)
@@ -73,6 +82,7 @@ class ScanRequest(BaseModel):
 
 
 def validate_message_text(value: str):
+    """Shared text validation for non-Pydantic inputs (batch rows, OCR output)."""
     trimmed = normalize_message_text(value)
     if not trimmed:
         raise ValueError("Message cannot be empty.")
@@ -84,6 +94,7 @@ def validate_message_text(value: str):
 
 
 def validate_source_value(value: str):
+    """Normalize and validate accepted source identifiers."""
     normalized = value.strip().lower()
     if normalized not in ALLOWED_SOURCES:
         raise ValueError("Invalid source.")
@@ -91,6 +102,7 @@ def validate_source_value(value: str):
 
 
 def parse_bool_form_value(value: str | None, default: bool):
+    """Parse HTML form boolean strings into strict bool values."""
     if value is None:
         return default
     normalized = value.strip().lower()
@@ -145,6 +157,7 @@ async def scan_message(
     payload: ScanRequest,
     db: AsyncSession = Depends(get_db)
 ):
+    """Scan one message payload and persist the resulting classification record."""
     try:
         prediction = await asyncio.to_thread(predict, payload.message)
         record = await create_scan_record(
@@ -169,6 +182,7 @@ async def scan_ocr(
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db)
 ):
+    """Run OCR + spam prediction for one uploaded image and persist the result."""
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400,
@@ -233,6 +247,7 @@ async def scan_batch(
     default_source: str | None = Form(default="batch"),
     db: AsyncSession = Depends(get_db),
 ):
+    """Validate, score, and optionally persist many CSV rows in one request."""
     file_name = (file.filename or "").lower()
     if file.content_type not in ALLOWED_BATCH_TYPES and not file_name.endswith(".csv"):
         raise HTTPException(

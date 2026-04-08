@@ -1,4 +1,10 @@
-"""Generate compact AI labels with warning-friendly prefixes."""
+"""Generate compact AI labels with consistent English severity prefixes.
+
+This module centralizes:
+1) OpenRouter request behavior for short label generation.
+2) Local fallback labeling when the external call is unavailable/skipped.
+3) A canonical severity vocabulary shared by backend and frontend.
+"""
 
 import re
 
@@ -18,17 +24,18 @@ URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 WS_RE = re.compile(r"\s+")
 
 PREFIX_BY_RESULT = {
-    "spam": "WARNING",
-    "needs_review": "ATTENSION",
+    "spam": "ALERT",
+    "needs_review": "CAUTION",
     "ham": "SAFE",
 }
 
 
 def _compact_text(value: str, max_words: int = 8) -> str:
+    """Reduce noisy message text to a short phrase for label display."""
     text = URL_RE.sub("", value or "")
     text = WS_RE.sub(" ", text).strip()
     if not text:
-        return "Unknown content"
+        return "unknown content"
     words = text.split(" ")
     return " ".join(words[:max_words]).strip()
 
@@ -39,10 +46,11 @@ def _format_warning_label(
     base_text: str,
     confidence: float,
 ) -> str:
+    """Build a standardized runtime label: '<SEVERITY>: <short summary>'."""
     normalized_result = (result or "needs_review").strip().lower()
-    prefix = PREFIX_BY_RESULT.get(normalized_result, "ATTENSION")
+    prefix = PREFIX_BY_RESULT.get(normalized_result, "CAUTION")
     short_text = _compact_text(base_text, max_words=8)
-    if short_text.lower() == "Unknown content":
+    if short_text.lower() == "unknown content":
         short_text = f"confidence {confidence:.2f}"
     return f"{prefix}: {short_text}"[:120]
 
@@ -54,7 +62,11 @@ async def get_ai_label(
     *,
     force: bool = False,
 ) -> str | None:
-    """Return compact AI label with warning prefix."""
+    """Return a compact severity label for UI display and history records.
+
+    Falls back to a local deterministic label so the UI always receives a
+    readable English value even when AI labeling is disabled or unavailable.
+    """
     if not settings.ai_label_enabled:
         return _format_warning_label(result=result, base_text=message, confidence=confidence)
     if not force and confidence < settings.ai_label_min_confidence:

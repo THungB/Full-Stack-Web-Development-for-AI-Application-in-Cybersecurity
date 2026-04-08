@@ -16,14 +16,15 @@ import {
 } from "../utils/format";
 
 function getAiLabelTone(aiLabel) {
+  // Keep AI label severity styling consistent with backend prefixes.
   const normalized = String(aiLabel || "").toUpperCase();
-  if (normalized.startsWith("CANH BAO")) {
+  if (normalized.startsWith("ALERT")) {
     return "border-threat/25 bg-threat/10 text-threat";
   }
-  if (normalized.startsWith("LUU Y")) {
+  if (normalized.startsWith("CAUTION")) {
     return "border-[#f59e0b]/25 bg-[#f59e0b]/10 text-[#b45309]";
   }
-  if (normalized.startsWith("AN TOAN")) {
+  if (normalized.startsWith("SAFE")) {
     return "border-safe/25 bg-safe/10 text-safe";
   }
   return "border-line/20 bg-elevated-strong/80 text-copy/70";

@@ -81,9 +81,10 @@ export default function ResultCard({ result, state = "idle", error = "" }) {
     ? "border-threat/20 bg-threat/10 text-threat"
     : "border-safe/20 bg-safe/10 text-safe";
   const HeroIcon = isSpam ? ShieldWarning : ShieldCheck;
-  const aiLabelTone = String(result.ai_label || "").toUpperCase().startsWith("CANH BAO")
+  // Severity tone follows backend AI label prefixes: ALERT / CAUTION / SAFE.
+  const aiLabelTone = String(result.ai_label || "").toUpperCase().startsWith("ALERT")
     ? "border-threat/25 bg-threat/10 text-threat"
-    : String(result.ai_label || "").toUpperCase().startsWith("LUU Y")
+    : String(result.ai_label || "").toUpperCase().startsWith("CAUTION")
       ? "border-[#f59e0b]/25 bg-[#f59e0b]/10 text-[#b45309]"
       : "border-line/20 bg-elevated-strong/80 text-copy/70";
 

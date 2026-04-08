@@ -1,3 +1,11 @@
+"""Telegram-focused API routes for moderation, analytics, and settings.
+
+These endpoints support three runtime surfaces:
+1) Telegram dashboard data in the web frontend.
+2) Telegram bot moderation controls (ban/unban + strike counting).
+3) Persistent moderation settings stored in the shared database.
+"""
+
 import requests
 import os
 from datetime import datetime, timedelta, timezone
@@ -52,10 +60,12 @@ async def get_telegram_messages(
 
 
 def _month_start(value: datetime) -> datetime:
+    """Normalize a datetime to the first instant of its month (UTC-aware input)."""
     return value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
 def _shift_month(value: datetime, months: int) -> datetime:
+    """Shift a month-start datetime by N months while preserving month boundary."""
     year = value.year + (value.month - 1 + months) // 12
     month = (value.month - 1 + months) % 12 + 1
     return value.replace(year=year, month=month, day=1)
@@ -160,6 +170,8 @@ async def delete_telegram_message(record_id: int, db: AsyncSession = Depends(get
     return {"success": True, "deleted_id": record_id}
 
 class SettingsUpdate(BaseModel):
+    """Input payload for updating automated moderation settings."""
+
     max_strikes: int
     ban_duration_hours: int
 

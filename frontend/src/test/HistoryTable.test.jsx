@@ -27,7 +27,7 @@ describe("HistoryTable", () => {
     const expandButton = screen.getAllByRole("button", { name: /expand/i })[0];
     fireEvent.click(expandButton);
 
-    expect(screen.getAllByText(/collapse/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle(/collapse message/i).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByRole("button", { name: /delete record 1/i })[0]);
     expect(onDelete).toHaveBeenCalledWith(1);

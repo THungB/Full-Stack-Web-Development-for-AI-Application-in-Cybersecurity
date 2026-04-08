@@ -30,6 +30,7 @@ import {
 } from "../services/api";
 
 function DoubleBezelCard({ children, className = "" }) {
+  // Shared shell used by Telegram dashboard tiles for consistent visual framing.
   return (
     <div className="h-full overflow-hidden rounded-[2rem] border border-line/25 bg-panel p-1 shadow-panel">
       <div className={`relative flex h-full flex-1 flex-col overflow-hidden rounded-[calc(2rem-0.375rem)] border border-line/15 bg-surface ${className}`}>
@@ -40,6 +41,7 @@ function DoubleBezelCard({ children, className = "" }) {
 }
 
 export default function Telegram() {
+  // Dashboard state: message feed, moderation tables, and chart datasets.
   const [data, setData] = useState([]);
   const [topSpammers, setTopSpammers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +56,7 @@ export default function Telegram() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
+    // Keep the clock pill fresh without forcing high-frequency re-renders.
     const timer = setInterval(() => setCurrentTime(new Date()), 60000); 
     return () => clearInterval(timer);
   }, []);
@@ -68,6 +71,7 @@ export default function Telegram() {
 
 
   useEffect(() => {
+    // Bootstrap all Telegram dashboard data from backend endpoints in parallel.
     const fetchDashboardData = async () => {
       try {
         const [msgRes, spammerRes, settingsRes, trafficRes] = await Promise.all([
@@ -92,6 +96,7 @@ export default function Telegram() {
 
   // Save Settings to Backend
   const handleSaveSettings = async () => {
+    // Persist moderation rule edits and keep local state as source of truth.
     setIsSaving(true);
     try {
       await updateTelegramSettings(settings);
@@ -104,6 +109,7 @@ export default function Telegram() {
   };
 
   const handleManualBan = async (chat_id, user_id) => {
+    // Optimistic UX: remove user from leaderboard after a successful ban call.
     try {
       await manualTelegramBan({ chat_id, user_id });
       // Visually remove them from the leaderboard
@@ -114,6 +120,7 @@ export default function Telegram() {
   };
 
    const handleManualUnban = async (chat_id, user_id) => {
+    // Mirror ban behavior so operators see immediate feedback in the modal.
     try {
       await manualTelegramUnban({ chat_id, user_id });
       // Visually remove them from the dirty leaderboard

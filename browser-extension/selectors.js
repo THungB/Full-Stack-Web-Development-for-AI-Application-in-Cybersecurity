@@ -1,4 +1,5 @@
 (() => {
+  // Centralized selector/hint registry used by content.js scanning heuristics.
   window.TelegramSpamGuardSelectors = {
     composerCandidates: [
       'div[contenteditable="true"][role="textbox"]',

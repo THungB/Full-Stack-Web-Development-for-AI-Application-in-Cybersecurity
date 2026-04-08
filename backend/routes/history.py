@@ -1,3 +1,5 @@
+"""History endpoints for retrieving, deleting, and refreshing scan records."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,7 @@ async def get_history(
     source: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
 ):
+    """Return paginated history records with optional result/source filters."""
     base_stmt = select(Scan)
     count_stmt = select(func.count(Scan.id)).select_from(Scan)
 
@@ -52,6 +55,7 @@ async def get_history(
 
 @router.delete("/history/{record_id}")
 async def delete_history_record(record_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete one history record by ID."""
     result = await db.execute(select(Scan).where(Scan.id == record_id))
     record = result.scalar_one_or_none()
 
@@ -65,6 +69,7 @@ async def delete_history_record(record_id: int, db: AsyncSession = Depends(get_d
 
 @router.post("/history/{record_id}/regenerate-label")
 async def regenerate_ai_label(record_id: int, db: AsyncSession = Depends(get_db)):
+    """Force-refresh the AI label for an existing record."""
     result = await db.execute(select(Scan).where(Scan.id == record_id))
     record = result.scalar_one_or_none()
 

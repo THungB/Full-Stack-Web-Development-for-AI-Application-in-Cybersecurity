@@ -30,6 +30,8 @@ vi.mock("@phosphor-icons/react", () => {
     CheckCircle: createIcon("CheckCircle"),
     ClockCounterClockwise: createIcon("ClockCounterClockwise"),
     Gauge: createIcon("Gauge"),
+    Minus: createIcon("Minus"),
+    Plus: createIcon("Plus"),
     Question: createIcon("Question"),
     RocketLaunch: createIcon("RocketLaunch"),
     ShieldCheck: createIcon("ShieldCheck"),

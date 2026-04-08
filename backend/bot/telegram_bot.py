@@ -1,3 +1,11 @@
+"""Telegram bot runtime that forwards messages to the spam API.
+
+Responsibilities:
+1) Listen to group messages and pre-filter short/ignored inputs.
+2) Send scan requests to FastAPI with Telegram metadata.
+3) Apply strike-based warning and mute policy using backend settings.
+"""
+
 import os
 
 import requests
@@ -11,6 +19,7 @@ MIN_MESSAGE_LENGTH = 10
 
 
 def classify_advice(result: str, confidence: float):
+    """Map model output to a human-readable risk label and action advice."""
     label = str(result or "").lower()
     score = float(confidence or 0)
 
@@ -24,6 +33,7 @@ def classify_advice(result: str, confidence: float):
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Main telegram message handler used by python-telegram-bot."""
     if not update.message or not update.message.text:
         return
 
@@ -37,17 +47,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = update.effective_user.first_name
         user_tag = username
     
-    # 1. Extract the internal IDs securely from Telegram
+    # Extract platform IDs once so scan requests and enforcement reuse the same values.
     user_id = str(update.effective_user.id) if update.effective_user else None
     chat_id = str(update.effective_chat.id) if update.effective_chat else None
-    # --- ADMIN IMMUNITY CHECK ---
+
+    # Admin immunity: never moderate creator/admin messages in group chats.
     if update.message.chat.type in ["group", "supergroup"]:
         try:
             member = await context.bot.get_chat_member(chat_id, user_id)
             if member.status in ["creator", "administrator"]:
-                return  # Instantly ignore group owners and admins completely!
+                return
         except Exception:
-            pass # If the check fails, just proceed normally
+            pass
     try:
         response = requests.post(
             FASTAPI_URL,
@@ -71,17 +82,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         final_label, risk_level, advice = classify_advice(result, confidence_raw)   
         if final_label in ["SPAM", "UNCERTAIN"]:
             
-            # --- AUTO-STRIKE BOUNCER LOGIC ---
+            # Auto-strike flow: load enforcement settings + current strike count.
             try:
-                # 1. Ask the Database for Settings
                 settings_res = requests.get(FASTAPI_URL.replace("/scan", "/telegram/settings")).json()
                 max_strikes = settings_res.get("max_strikes", 3)
                 ban_duration_hours = settings_res.get("ban_duration_hours", 0)
-                # 2. Ask Database how many strikes this exact user has
                 strikes_res = requests.get(FASTAPI_URL.replace("/scan", f"/telegram/strikes/{user_id}")).json()
                 current_strikes = strikes_res.get("strikes", 1)
                 is_group = update.message.chat.type in ["group", "supergroup"]
-                # 3. Execution (The Mute)
+
+                # Mute users who crossed the configured strike threshold.
                 if current_strikes >= max_strikes and is_group:
                     ban_time = None if ban_duration_hours == 0 else (datetime.datetime.now() + datetime.timedelta(hours=ban_duration_hours))
                     
@@ -93,7 +103,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         until_date=ban_time
                     )
                     
-                    # Determine the exact text to say based on the hours passed from settings
                     time_text = "FOREVER" if ban_duration_hours == 0 else f"for {ban_duration_hours} hours"
                     
                     ban_msg = f"{user_tag} **MUTED** \nUser has been locked from sending messages {time_text} for reaching {max_strikes} spam strikes."
@@ -101,7 +110,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     return # Stop processing, they are muted
             except Exception as e:
                 print(f"Bouncer auto-ban logic failed: {e}")
-            # 4. If not banned yet, send standard Warning Alert
+            # If threshold is not reached yet, send a strike warning instead.
             warning_msg = (
                 f"{user_tag} **Spam Alert** (Strike {current_strikes} of {max_strikes}) \n"
                 f"Result: {final_label} | Risk: {risk_level}\n"
@@ -118,6 +127,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    """Bot entrypoint for local execution."""
     if not BOT_TOKEN:
         raise RuntimeError("Set TELEGRAM_BOT_TOKEN before running the Telegram bot.")
 

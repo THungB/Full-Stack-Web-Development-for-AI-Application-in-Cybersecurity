@@ -1,4 +1,8 @@
 (function () {
+  // Telegram Web content runtime:
+  // - Detect composer + messages
+  // - Queue and throttle scan requests
+  // - Render a floating moderation panel with latest decision
   const selectors = window.TelegramSpamGuardSelectors || {};
   const API_URL = "http://localhost:8000/scan";
   const WORD_THRESHOLD_DEFAULT = 10;
@@ -51,6 +55,7 @@
   });
 
   async function init() {
+    // Guard: only activate on Telegram Web to avoid side effects on other pages.
     if (!isTelegramWeb()) {
       return;
     }
@@ -80,6 +85,7 @@
   }
 
   function setupLocationWatcher() {
+    // Reset per-chat transient state when route/chat context changes.
     state.locationTimer = window.setInterval(() => {
       const current = getRouteKey();
       if (state.routeKey !== current) {
@@ -96,6 +102,7 @@
   }
 
   function setupComposerObserver() {
+    // Observe DOM churn and rebind composer hooks after Telegram UI rerenders.
     if (state.composerObserver) {
       state.composerObserver.disconnect();
     }
@@ -114,6 +121,7 @@
   }
 
   function setupIncomingObserver() {
+    // Observe newly inserted incoming messages for automatic scan candidates.
     if (state.incomingObserver) {
       state.incomingObserver.disconnect();
     }
@@ -579,6 +587,7 @@
   }
 
   function enqueueScan(candidate) {
+    // Normalize + deduplicate before queueing to avoid duplicate API requests.
     const normalizedText = normalizeMessageText(String(candidate.text || ""));
     if (!normalizedText) {
       return;
@@ -618,6 +627,7 @@
   }
 
   function pumpQueue() {
+    // Process queue under MAX_CONCURRENCY to keep UI responsive.
     while (state.running < MAX_CONCURRENCY && state.queue.length > 0) {
       const candidate = state.queue.shift();
       if (!candidate) {
@@ -636,6 +646,7 @@
   }
 
   async function scanCandidate(candidate) {
+    // Execute network scan and map raw classifier output to user-facing advice.
     updateStatus("scanning", "Scanning " + candidate.direction + " message...");
     updateComposerBadge("scanning");
 
@@ -764,6 +775,7 @@
   }
 
   function createPanel() {
+    // Build the persistent floating panel once and cache element references.
     const panel = document.createElement("aside");
     panel.id = "spam-guard-panel";
     panel.innerHTML = [
@@ -1033,6 +1045,7 @@
   }
 
   function injectStyles() {
+    // Inject scoped styles once; all extension UI is namespaced with spam-guard-*.
     if (document.getElementById("spam-guard-style")) {
       return;
     }
