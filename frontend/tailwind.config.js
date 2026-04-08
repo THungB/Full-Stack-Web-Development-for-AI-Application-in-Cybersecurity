@@ -2,6 +2,7 @@
 const themeColor = (token) => `rgb(var(${token}) / <alpha-value>)`;
 
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {

@@ -89,7 +89,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("theme-dark", isDark);
+    root.classList.toggle("dark", isDark);
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [isDark, theme]);
 

@@ -27,7 +27,7 @@
   font-family: "Inter", "Segoe UI", sans-serif;
 }
 
-.theme-dark {
+.dark {
   --shell: 11 19 38;
   --surface: 19 27 46;
   --panel: 23 31 51;

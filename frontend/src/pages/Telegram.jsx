@@ -21,8 +21,8 @@ import axios from "axios";
 
 function DoubleBezelCard({ children, className = "" }) {
   return (
-    <div className="p-1.5 rounded-[2rem] bg-black/5 dark:bg-white/5 ring-1 ring-black/5 dark:border dark:border-white/10 shadow-sm relative overflow-hidden h-full flex flex-col">
-      <div className={`flex-1 rounded-[calc(2rem-0.375rem)] bg-white dark:bg-[#121212] shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] overflow-hidden relative flex flex-col ${className}`}>
+    <div className="h-full overflow-hidden rounded-[2rem] border border-line/25 bg-panel p-1 shadow-panel">
+      <div className={`relative flex h-full flex-1 flex-col overflow-hidden rounded-[calc(2rem-0.375rem)] border border-line/15 bg-surface ${className}`}>
         {children}
       </div>
     </div>
@@ -106,6 +106,12 @@ export default function Telegram() {
 
   const uniqueUsers = [...new Set(data.filter(m => m.username).map(m => m.username))];
   const activeUser = uniqueUsers.length > 0 ? `@${uniqueUsers[0]}` : "Awaiting Telemetry";
+  const tooltipStyle = {
+    borderRadius: "0.9rem",
+    border: "1px solid rgb(var(--line) / 0.35)",
+    background: "rgb(var(--panel))",
+    boxShadow: "0 16px 34px rgba(15, 23, 42, 0.16)",
+  };
 
   return (
     <>
@@ -123,7 +129,7 @@ export default function Telegram() {
             </h1>
           </div>
           
-          <div className="flex items-center gap-4 bg-black/5 dark:bg-white/5 py-3 px-6 rounded-[2rem] ring-1 ring-black/5 dark:border dark:border-white/10">
+          <div className="flex items-center gap-4 rounded-[2rem] border border-line/25 bg-elevated/70 py-3 px-6">
             <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-inner">
               <PaperPlaneRight weight="fill" size={24} />
             </div>
@@ -186,9 +192,10 @@ export default function Telegram() {
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '1rem', border: 'none', background: '#121212', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}
-                      itemStyle={{ color: '#fff' }}
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      itemStyle={{ color: "rgb(var(--copy))" }}
+                      labelStyle={{ color: "rgb(var(--muted))" }}
                     />
                     <Area type="monotone" dataKey="spam" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorSpam)" />
                   </AreaChart>
@@ -224,7 +231,7 @@ export default function Telegram() {
 
               <button 
                 onClick={() => setIsSettingsOpen(true)}
-                className="w-full mt-4 py-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-copy text-sm font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line/30 bg-elevated py-3 text-sm font-semibold text-copy transition-all hover:bg-elevated-strong active:scale-[0.98]"
               >
                 <Wrench size={18} /> Modify Rules
               </button>
@@ -245,7 +252,7 @@ export default function Telegram() {
                <div className="flex flex-col sm:flex-row items-center gap-4">
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="group relative flex items-center gap-3 p-4 px-6 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300 active:scale-[0.98]"
+                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
                   >
                     <ShieldSlash size={22} className="text-red-500" />
                     <span className="text-sm font-medium text-copy">View Top Spammers</span>
@@ -255,7 +262,7 @@ export default function Telegram() {
                     href="https://web.telegram.org" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="group relative flex items-center gap-3 p-4 px-6 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-300 active:scale-[0.98]"
+                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
                   >
                     <TelegramLogo size={22} className="text-[#2AABEE]" weight="fill" />
                     <span className="text-sm font-medium text-copy">Open Telegram</span>
@@ -273,7 +280,7 @@ export default function Telegram() {
         {isModalOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-md sm:p-6"
           >
             <motion.div
               layoutId="quarantine-modal"
@@ -281,16 +288,16 @@ export default function Telegram() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-full max-w-2xl bg-white dark:bg-[#121212] border border-black/10 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-line/30 bg-panel shadow-panel"
             >
-              <div className="flex items-center justify-between p-6 border-b border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02]">
+              <div className="flex items-center justify-between border-b border-line/20 bg-elevated/70 p-6">
                 <div className="flex items-center gap-3">
                   <ShieldSlash size={28} className="text-red-500" />
                   <h3 className="text-xl font-semibold text-copy tracking-tight">Active Spammers Leaderboard</h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line/30 bg-surface transition-colors hover:bg-elevated"
                 >
                   <X size={20} className="text-copy" />
                 </button>
@@ -303,14 +310,14 @@ export default function Telegram() {
                       <motion.div 
                         layout key={`offender-${offender.user_id}`}
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, x: 50 }}
-                        className="flex items-center justify-between p-4 rounded-[1.5rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5"
+                        className="flex items-center justify-between rounded-[1.5rem] border border-line/25 bg-surface p-4"
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 font-bold shrink-0">
                             {offender.spam_count}
                           </div>
                           <div>
-                            <p className="font-semibold text-copy bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md inline-block mb-1">
+                            <p className="mb-1 inline-block rounded-md border border-line/25 bg-elevated px-2 py-0.5 font-semibold text-copy">
                               @{offender.username}
                             </p>
                             <p className="text-[11px] text-copy/60 font-mono uppercase tracking-wider block">
@@ -357,13 +364,13 @@ export default function Telegram() {
         {isSettingsOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-md sm:p-6"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="w-full max-w-sm bg-white dark:bg-[#121212] border border-black/10 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden p-6 relative"
+              className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-line/30 bg-panel p-6 shadow-panel"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 text-primary">
@@ -372,7 +379,7 @@ export default function Telegram() {
                 </div>
                 <button 
                   onClick={() => setIsSettingsOpen(false)} 
-                  className="rounded-full p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors text-copy"
+                  className="rounded-full border border-line/30 bg-surface p-2 text-copy transition-colors hover:bg-elevated"
                 >
                    <X size={16} />
                 </button>
@@ -385,7 +392,7 @@ export default function Telegram() {
                     type="number" 
                     value={settings.max_strikes}
                     onChange={(e) => setSettings({...settings, max_strikes: parseInt(e.target.value) || 0})}
-                    className="bg-black/5 dark:bg-white/5 p-3 rounded-xl outline-none focus:ring-2 focus:ring-primary font-mono text-copy font-semibold"
+                    className="rounded-xl border border-line/30 bg-elevated p-3 font-mono font-semibold text-copy outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 
@@ -397,7 +404,7 @@ export default function Telegram() {
                     type="number" 
                     value={settings.ban_duration_hours}
                     onChange={(e) => setSettings({...settings, ban_duration_hours: parseInt(e.target.value) || 0})}
-                    className="bg-black/5 dark:bg-white/5 p-3 rounded-xl outline-none focus:ring-2 focus:ring-primary font-mono text-copy font-semibold"
+                    className="rounded-xl border border-line/30 bg-elevated p-3 font-mono font-semibold text-copy outline-none focus:ring-2 focus:ring-primary"
                   />
                   <p className="text-[11px] text-copy/60 mt-1 italic pl-1">
                     * Note: Always means they are banned Forever.
