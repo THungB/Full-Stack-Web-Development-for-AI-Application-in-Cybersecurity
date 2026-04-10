@@ -30,7 +30,6 @@ import {
 } from "../services/api";
 
 function DoubleBezelCard({ children, className = "" }) {
-  // Shared shell used by Telegram dashboard tiles for consistent visual framing.
   return (
     <div className="h-full overflow-hidden rounded-[2rem] border border-line/25 bg-panel p-1 shadow-panel">
       <div className={`relative flex h-full flex-1 flex-col overflow-hidden rounded-[calc(2rem-0.375rem)] border border-line/15 bg-surface ${className}`}>
@@ -49,14 +48,14 @@ export default function Telegram() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [trafficDay, setTrafficDay] = useState([]);
   const [trafficMonth, setTrafficMonth] = useState([]);
+  const [todaySpam, setTodaySpam] = useState(0);
   
   // Automation Settings State
-  const [settings, setSettings] = useState({ max_strikes: 3, ban_duration_hours: 0 });
+  const [settings, setSettings] = useState({ max_strikes: 3, ban_duration_hours: 0, spam_decay_hours: 0 });
   const [isSaving, setIsSaving] = useState(false);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
-    // Keep the clock pill fresh without forcing high-frequency re-renders.
     const timer = setInterval(() => setCurrentTime(new Date()), 60000); 
     return () => clearInterval(timer);
   }, []);
@@ -75,11 +74,16 @@ export default function Telegram() {
     const fetchDashboardData = async () => {
       try {
         const [msgRes, spammerRes, settingsRes, trafficRes] = await Promise.all([
-          getTelegramMessages(1, 50, ""),
+          getTelegramMessages(1, 1, "spam"),
           getTelegramSpammers(),
           getTelegramSettings(),
-          getTelegramTrafficReport("all"),
+          getTelegramTrafficReport("telegram"),
         ]);
+
+        const daysArray = trafficRes.data.day || [];
+        const currentTodaySpam = daysArray.length > 0 ? daysArray[daysArray.length - 1].spam : 0;
+
+        setTodaySpam(currentTodaySpam);
         setData(msgRes.data.data || []);
         setTopSpammers(spammerRes.data.data || []);
         setSettings(settingsRes.data);
@@ -96,11 +100,9 @@ export default function Telegram() {
 
   // Save Settings to Backend
   const handleSaveSettings = async () => {
-    // Persist moderation rule edits and keep local state as source of truth.
     setIsSaving(true);
     try {
       await updateTelegramSettings(settings);
-      // Give a tiny delay for visual UI feedback
       setTimeout(() => setIsSaving(false), 500); 
     } catch (err) {
       console.error("Failed to update Auto-Ban settings", err);
@@ -109,10 +111,8 @@ export default function Telegram() {
   };
 
   const handleManualBan = async (chat_id, user_id) => {
-    // Optimistic UX: remove user from leaderboard after a successful ban call.
     try {
       await manualTelegramBan({ chat_id, user_id });
-      // Visually remove them from the leaderboard
       setTopSpammers(prev => prev.filter(s => s.user_id !== user_id));
     } catch (err) {
       console.error("Manual ban failed:", err);
@@ -120,21 +120,16 @@ export default function Telegram() {
   };
 
    const handleManualUnban = async (chat_id, user_id) => {
-    // Mirror ban behavior so operators see immediate feedback in the modal.
     try {
       await manualTelegramUnban({ chat_id, user_id });
-      // Visually remove them from the dirty leaderboard
       setTopSpammers(prev => prev.filter(s => s.user_id !== user_id));
     } catch (err) {
       console.error("Manual pardon failed:", err);
     }
   };
 
-  const spamMessages = data.filter((msg) => msg.result === "spam");
-  const totalSpam = spamMessages.length;
-
   const todayDate = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Bangkok", // This locks it strictly to GMT+7
+    timeZone: "Asia/Bangkok", // Locks it strictly to GMT+7
     month: "long",
     day: "numeric",
     year: "numeric"
@@ -155,7 +150,7 @@ const [chartView, setChartView] = useState("day");
   return (
     <>
       <div className="min-h-[100dvh] w-full max-w-7xl mx-auto flex flex-col pt-12 pb-24">
-        {/* 1. Header (System Live Removed!) */}
+        {/* 1. Header */}
         <motion.div
           initial={{ opacity: 0, y: 16, filter: "blur(8px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -183,7 +178,7 @@ const [chartView, setChartView] = useState("day");
               </div>
               <div>
                 <p className="text-6xl font-mono font-bold tracking-tighter text-copy">
-                  {isLoading ? "--" : totalSpam}
+                  {isLoading ? "--" : todaySpam}
                 </p>
                 <p className="text-sm font-medium text-copy/60 mt-2">Total Spam Messages Detected  on {todayDate} <span className="opacity-75">(GMT+7)</span>
                 </p>
@@ -199,18 +194,16 @@ const [chartView, setChartView] = useState("day");
             <DoubleBezelCard className="p-8 pb-0">
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="mt-2">
-                  <h2 className="text-xl font-semibold tracking-tight text-copy">Traffic Report</h2>
-                  <p className="text-sm text-copy/50 mt-1">Spam frequency over time</p>
+                  <h2 className="text-xl font-semibold tracking-tight text-copy">Data Report</h2>
+                  <p className="text-sm text-copy/50 mt-1">Spam frequency over time on Telegram</p>
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                  {/* --- LIVE CLOCK PILL --- */}
                   <div className="flex items-center gap-2 text-copy/70 text-xs font-semibold uppercase tracking-wider bg-elevated px-3 py-1.5 rounded-full border border-line/30">
                     <Clock size={14} weight="bold" />
                     <span>{liveTimeString}</span>
                   </div>
                   
-                  {/* --- DAY / MONTH TOGGLE BUTTONS --- */}
                   <div className="flex items-center gap-1 bg-elevated p-1 rounded-lg border border-line/30 mt-1">
                     <button 
                       onClick={() => setChartView("day")}
@@ -254,21 +247,21 @@ const [chartView, setChartView] = useState("day");
             </DoubleBezelCard>
           </motion.div>
 
-          {/* New Automation Control Panel */}
+                    {/* Control Panel */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="md:col-span-4"
           >
-            <DoubleBezelCard className="p-6 lg:p-8 flex flex-col justify-between">
+            <DoubleBezelCard className="p-5 lg:p-6 flex flex-col justify-between">
               <div>
-                <h2 className="text-lg font-semibold tracking-tight mb-2 text-copy">Bot Automation Rules</h2>
-                <p className="text-sm text-copy/60 mb-6">Current Enforcement Protocol</p>
+                <h2 className="text-lg font-semibold tracking-tight mb-1 text-copy">Bot Rules</h2>
+                <p className="text-sm text-copy/60 mb-4">Current Enforcement Protocol</p>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-copy/80">Tolerance Level:</span>
-                    <span className="font-mono font-bold text-primary">{settings.max_strikes} Strikes</span>
+                    <span className="text-copy/80">Max Spam Allowed:</span>
+                    <span className="font-mono font-bold text-primary">{settings.max_strikes} Messages</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-copy/80">Ban Duration:</span>
@@ -276,51 +269,55 @@ const [chartView, setChartView] = useState("day");
                       {settings.ban_duration_hours === 0 ? "Always" : `${settings.ban_duration_hours} Hours`}
                     </span>
                   </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-copy/80">Reset Timer:</span>
+                    <span className="font-mono font-bold text-emerald-500">
+                      {settings.spam_decay_hours === 0 ? "Disabled" : `${settings.spam_decay_hours} Hours`}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <button 
                 onClick={() => setIsSettingsOpen(true)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line/30 bg-elevated py-3 text-sm font-semibold text-copy transition-all hover:bg-elevated-strong active:scale-[0.98]"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-line/30 bg-elevated py-2.5 text-sm font-semibold text-copy transition-all hover:bg-elevated-strong active:scale-[0.98]"
               >
                 <Wrench size={18} /> Modify Rules
               </button>
             </DoubleBezelCard>
           </motion.div>
 
-          {/* Leaderboard Action Island */}
+          {/* Quick Action Table */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4, ease: [0.32, 0.72, 0, 1] }}
             className="md:col-span-12 mt-2"
           >
-            <DoubleBezelCard className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-               <div className="flex-1">
-                 <h2 className="text-xl font-semibold tracking-tight text-copy mb-2">Quick Actions</h2>
+            <DoubleBezelCard className="p-8 flex flex-col w-full gap-5">
+               <div className="w-full">
+                 <h2 className="text-xl font-semibold tracking-tight text-copy mb-3">Quick Actions</h2>
+                 <div className="h-px w-full bg-line/30 mb-2"></div>
                </div>
-
-               <div className="flex flex-col sm:flex-row items-center gap-4">
-                <Link 
+               <div className="flex flex-col sm:flex-row w-full gap-4">
+                  <Link 
                     to="/history"
-                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
+                    className="flex-1 group relative flex items-center justify-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
                   >
                     <Clock size={22} className="text-emerald-500" />
                     <span className="text-sm font-medium text-copy">View History</span>
                   </Link>
-                  {/* ... Existing View Top Spammers Button ... */}
                   <button 
                     onClick={() => setIsModalOpen(true)}
-                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
+                    className="flex-1 group relative flex items-center justify-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
                   >
                     <ShieldSlash size={22} className="text-red-500" />
                     <span className="text-sm font-medium text-copy">View Top Spammers</span>
                   </button>
-
                   <a 
                     href="https://web.telegram.org" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="group relative flex items-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
+                    className="flex-1 group relative flex items-center justify-center gap-3 rounded-2xl border border-line/30 bg-elevated px-6 py-4 transition-all duration-300 hover:bg-elevated-strong active:scale-[0.98]"
                   >
                     <TelegramLogo size={22} className="text-[#2AABEE]" weight="fill" />
                     <span className="text-sm font-medium text-copy">Open Telegram</span>
@@ -333,7 +330,7 @@ const [chartView, setChartView] = useState("day");
         </div>
       </div>
 
-      {/* --- MORPHING MODAL: TOP SPAMMERS LEADERBOARD --- */}
+      {/* Top Spammer Board */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
@@ -381,10 +378,15 @@ const [chartView, setChartView] = useState("day");
                             <p className="text-[11px] text-copy/60 font-mono uppercase tracking-wider block">
                               UID: {offender.user_id}
                             </p>
+                            <p className="text-[11px] text-red-500/90 font-mono tracking-wider block mt-1">
+                              {offender.last_spam && offender.last_spam !== "Unknown" 
+                                ? `LAST DETECTED: ${new Date(offender.last_spam).toLocaleString('en-GB')}` 
+                                : "LAST DETECTED: Unknown Date"}
+                            </p>
                           </div>
                         </div>
                         
-                                                <div className="shrink-0 flex items-center gap-2">
+                        <div className="shrink-0 flex items-center gap-2">
                            <button 
                              onClick={() => handleManualUnban(offender.chat_id, offender.user_id)}
                              title="Forgive User & Reset Strikes to 0"
@@ -417,7 +419,7 @@ const [chartView, setChartView] = useState("day");
         )}
       </AnimatePresence>
 
-            {/* --- MINI WINDOW: MODIFY RULES --- */}
+            {/* Modify Rules */}
       <AnimatePresence>
         {isSettingsOpen && (
           <motion.div
@@ -445,13 +447,28 @@ const [chartView, setChartView] = useState("day");
 
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-copy/80">Max Strikes Allowed</label>
+                  <label className="text-sm font-medium text-copy/80">Max Spam Allowed</label>
                   <input 
                     type="number" 
                     value={settings.max_strikes}
                     onChange={(e) => setSettings({...settings, max_strikes: parseInt(e.target.value) || 0})}
                     className="rounded-xl border border-line/30 bg-elevated p-3 font-mono font-semibold text-copy outline-none focus:ring-2 focus:ring-primary"
                   />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-copy/80">
+                    Reset Timer (0 = Disabled)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={settings.spam_decay_hours}
+                    onChange={(e) => setSettings({...settings, spam_decay_hours: parseInt(e.target.value) || 0})}
+                    className="rounded-xl border border-line/30 bg-elevated p-3 font-mono font-semibold text-copy outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-[11px] text-copy/60 mt-1 italic pl-1">
+                    * If they don't spam for this many hours, they reset to 0.
+                  </p>
                 </div>
                 
                 <div className="flex flex-col gap-1">

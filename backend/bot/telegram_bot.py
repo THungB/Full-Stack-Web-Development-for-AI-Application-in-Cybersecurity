@@ -82,49 +82,81 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         final_label, risk_level, advice = classify_advice(result, confidence_raw)   
         if final_label in ["SPAM", "UNCERTAIN"]:
             
-            # Auto-strike flow: load enforcement settings + current strike count.
+            # Defaults 
+            max_strikes = 3
+            ban_duration_hours = 0
+            spam_decay_hours = 0
+            current_strikes = 1
+            is_group = update.message.chat.type in ["group", "supergroup"]
+            is_bot_admin = False
+
             try:
+                # 2. Load Real Settings
                 settings_res = requests.get(FASTAPI_URL.replace("/scan", "/telegram/settings")).json()
                 max_strikes = settings_res.get("max_strikes", 3)
                 ban_duration_hours = settings_res.get("ban_duration_hours", 0)
+                spam_decay_hours = settings_res.get("spam_decay_hours", 0)
                 strikes_res = requests.get(FASTAPI_URL.replace("/scan", f"/telegram/strikes/{user_id}")).json()
                 current_strikes = strikes_res.get("strikes", 1)
-                is_group = update.message.chat.type in ["group", "supergroup"]
 
-                # Mute users who crossed the configured strike threshold.
+                # 3. Check the Bot's Admin Rights
+                if is_group:
+                    try:
+                        bot_member = await context.bot.get_chat_member(chat_id, context.bot.id)
+                        is_bot_admin = bot_member.status in ["administrator", "creator"]
+                    except Exception:
+                        pass
+
+                # 4. Handle users who crossed the max threshold
                 if current_strikes >= max_strikes and is_group:
                     ban_time = None if ban_duration_hours == 0 else (datetime.datetime.now() + datetime.timedelta(hours=ban_duration_hours))
-                    
-                    # Restrict them instead of banning them
-                    await context.bot.restrict_chat_member(
-                        chat_id=chat_id, 
-                        user_id=user_id, 
-                        permissions=ChatPermissions(can_send_messages=False),
-                        until_date=ban_time
-                    )
-                    
                     time_text = "FOREVER" if ban_duration_hours == 0 else f"for {ban_duration_hours} hours"
+                    ban_msg = f"{user_tag} **MUTED** \nUser has been locked from sending messages {time_text} for reaching {max_strikes} spam messages."
                     
-                    ban_msg = f"{user_tag} **MUTED** \nUser has been locked from sending messages {time_text} for reaching {max_strikes} spam strikes."
-                    await update.message.reply_text(text=ban_msg)
-                    return # Stop processing, they are muted
+                    if is_bot_admin:
+                        await context.bot.restrict_chat_member(
+                            chat_id=chat_id, 
+                            user_id=user_id, 
+                            permissions=ChatPermissions(can_send_messages=False),
+                            until_date=ban_time
+                        )
+                        await update.message.reply_text(text=ban_msg)
+                    
+                    try:
+                        await context.bot.send_message(chat_id=user_id, text=f"Group Violation: {ban_msg}")
+                    except Exception:
+                        pass
+                    return
+
             except Exception as e:
                 print(f"Bouncer auto-ban logic failed: {e}")
-            # If threshold is not reached yet, send a strike warning instead.
+            
+            # 5. Determine the mathematical decay text
+            decay_text = "Never" if spam_decay_hours == 0 else f"{spam_decay_hours} Hours"
+
+            # 6. Compose the Warning Document
             warning_msg = (
-                f"{user_tag} **Spam Alert** (Strike {current_strikes} of {max_strikes}) \n"
+                f"{user_tag} **Spam Alert** ({current_strikes} of {max_strikes} Spam Messages) \n"
                 f"Result: {final_label} | Risk: {risk_level}\n"
                 f"Keywords: {keywords}\n"
-                f"*(You will be muted if you reach {max_strikes} strikes)*"
+                f"*(You will be muted if you reach {max_strikes} spam messages)*\n"
+               # f"Your counting reset in: {decay_text}" # This is only use for testing
             )
+            
+            # 7. Deliver payloads based on Admin constraints
+            if is_group and is_bot_admin:
+                try:
+                    await update.message.reply_text(text=warning_msg)
+                except Exception as e:
+                    print(f"Could not send group warning: {e}")
+            
             try:
-                await update.message.reply_text(text=warning_msg)
-            except Exception as e:
-                print(f"Could not send group warning: {e}")
+                await context.bot.send_message(chat_id=user_id, text=f"Group Warning: {warning_msg}")
+            except Exception:
+                pass
                 
     except Exception as error:
         print(f"Error processing message: {error}")
-
 
 def main():
     """Bot entrypoint for local execution."""

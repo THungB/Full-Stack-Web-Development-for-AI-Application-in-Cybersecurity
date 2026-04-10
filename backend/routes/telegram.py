@@ -174,6 +174,7 @@ class SettingsUpdate(BaseModel):
 
     max_strikes: int
     ban_duration_hours: int
+    spam_decay_hours: int = 0
 
 @router.get("/telegram/settings")
 async def get_bot_settings(db: AsyncSession = Depends(get_db)):
@@ -183,12 +184,13 @@ async def get_bot_settings(db: AsyncSession = Depends(get_db)):
     
     return {
         "max_strikes": int(settings_dict.get("max_strikes", 3)),
-        "ban_duration_hours": int(settings_dict.get("ban_duration_hours", 0))
+        "ban_duration_hours": int(settings_dict.get("ban_duration_hours", 0)),
+        "spam_decay_hours": int(settings_dict.get("spam_decay_hours", 0))
     }
 @router.put("/telegram/settings")
 async def update_bot_settings(payload: SettingsUpdate, db: AsyncSession = Depends(get_db)):
     """Update the Auto-Bouncer configuration."""
-    for key, val in [("max_strikes", payload.max_strikes), ("ban_duration_hours", payload.ban_duration_hours)]:
+    for key, val in [("max_strikes", payload.max_strikes), ("ban_duration_hours", payload.ban_duration_hours), ("spam_decay_hours", payload.spam_decay_hours)]:
         record = (await db.execute(select(SystemSettings).where(SystemSettings.setting_key == key))).scalar_one_or_none()
         if record:
             record.setting_value = str(val)
@@ -200,19 +202,26 @@ async def update_bot_settings(payload: SettingsUpdate, db: AsyncSession = Depend
 @router.get("/telegram/spammers")
 async def get_top_spammers(db: AsyncSession = Depends(get_db)):
     """Analyze the database and return users with the highest spam counts."""
+    settings_records = (await db.execute(select(SystemSettings))).scalars().all()
+    settings_dict = {r.setting_key: r.setting_value for r in settings_records}
+    decay_hours = int(settings_dict.get("spam_decay_hours", 0))
+
     # Group by User ID and Chat ID, counting only "spam" results
     stmt = (
         select(
             Scan.username,
             Scan.user_id,
             Scan.chat_id,
-            func.count(Scan.id).label("spam_count")
+            func.count(Scan.id).label("spam_count"),
+            func.max(Scan.timestamp).label("last_spam")
         )
         .where(Scan.source == "telegram", Scan.result == "spam", Scan.user_id != None)
-        .group_by(Scan.username, Scan.user_id, Scan.chat_id)
-        .order_by(func.count(Scan.id).desc())
-        .limit(10)
     )
+
+    if decay_hours > 0:
+        threshold_time = datetime.now(timezone.utc) - timedelta(hours=decay_hours)
+        stmt = stmt.where(Scan.timestamp >= threshold_time)
+    stmt = stmt.group_by(Scan.username, Scan.user_id, Scan.chat_id).order_by(func.count(Scan.id).desc()).limit(10)
     
     result = await db.execute(stmt)
     spammers = []
@@ -221,7 +230,8 @@ async def get_top_spammers(db: AsyncSession = Depends(get_db)):
             "username": row.username or "Unknown",
             "user_id": row.user_id,
             "chat_id": row.chat_id,
-            "spam_count": row.spam_count
+            "spam_count": row.spam_count,
+            "last_spam": row.last_spam.isoformat() if row.last_spam else "Unknown"
         })
         
     return {"data": spammers}
@@ -229,10 +239,16 @@ async def get_top_spammers(db: AsyncSession = Depends(get_db)):
 @router.get("/telegram/strikes/{user_id}")
 async def get_user_strikes(user_id: str, db: AsyncSession = Depends(get_db)):
     """Count how many spam strikes a specific user has in the database."""
-    count = await db.scalar(
-        select(func.count(Scan.id))
-        .where(Scan.user_id == user_id, Scan.result == "spam")
-    )
+    settings_records = (await db.execute(select(SystemSettings))).scalars().all()
+    settings_dict = {r.setting_key: r.setting_value for r in settings_records}
+    decay_hours = int(settings_dict.get("spam_decay_hours", 0))
+    stmt = select(func.count(Scan.id)).where(Scan.user_id == user_id, Scan.result == "spam")
+    
+    if decay_hours > 0:
+        threshold_time = datetime.now(timezone.utc) - timedelta(hours=decay_hours)
+        stmt = stmt.where(Scan.timestamp >= threshold_time)
+
+    count = await db.scalar(stmt)
     return {"strikes": count or 1}
 
 @router.post("/telegram/ban")
