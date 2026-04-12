@@ -23,7 +23,6 @@ BUCKETS = [
 @router.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
 
-    # FIX: Single SQL aggregation — no rows transferred to Python memory
     spam_ham_result = await db.execute(
         select(
             func.sum(case((Scan.result == "spam", 1), else_=0)).label("spam_count"),
@@ -34,7 +33,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     spam_count = spam_ham.spam_count or 0
     ham_count  = spam_ham.ham_count  or 0
 
-    # FIX: Daily stats via GROUP BY — only 14 aggregate rows returned
     start_date = datetime.now(timezone.utc).date() - timedelta(days=13)
     start_dt   = datetime.combine(start_date, datetime.min.time())
 
@@ -59,7 +57,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
             daily_map[date_key]["total"] = row.total or 0
             daily_map[date_key]["spam"]  = row.spam  or 0
 
-    # FIX: Confidence buckets via SQL CASE WHEN — no per-record Python loop
     bucket_case = case(
         *[
             (

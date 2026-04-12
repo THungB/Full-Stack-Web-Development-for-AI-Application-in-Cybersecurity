@@ -1,6 +1,16 @@
+"""Scan endpoints for text, OCR, and batch workflows.
+
+This module is the primary ingestion surface for spam detection. It handles:
+1) Validation and normalization of client payloads.
+2) Prediction execution (CPU-bound model inference).
+3) Optional persistence to the historical ledger with AI labels.
+"""
+
 import asyncio
 import csv
 import io
+import re
+import unicodedata
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from PIL import Image, UnidentifiedImageError
@@ -11,6 +21,7 @@ from database.database import get_db
 from database.schema import Scan
 from ml.predictor import predict
 from routes.common import serialize_scan
+from services.ai_labeler import _format_warning_label, get_ai_label
 
 try:
     import pytesseract
@@ -31,17 +42,30 @@ ALLOWED_BATCH_TYPES = {
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
 MAX_BATCH_ROWS = 500
 EXPECTED_LABELS = {"spam", "ham"}
+ZERO_WIDTH_RE = re.compile(r"[\u200B-\u200D\uFEFF]")
+WHITESPACE_RE = re.compile(r"\s+")
+
+
+def normalize_message_text(value: str):
+    """Normalize incoming text to reduce Unicode/whitespace ambiguity."""
+    normalized = unicodedata.normalize("NFKC", value or "")
+    normalized = normalized.replace("\u00A0", " ")
+    normalized = ZERO_WIDTH_RE.sub("", normalized)
+    normalized = WHITESPACE_RE.sub(" ", normalized).strip()
+    return normalized
 
 
 class ScanRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     source: str = Field(default="website")
     username: str | None = Field(default=None, max_length=255)
+    chat_id: str | None = Field(default=None, max_length=50)
+    user_id: str | None = Field(default=None, max_length=50)
 
     @field_validator("message")
     @classmethod
     def validate_message(cls, value: str):
-        trimmed = value.strip()
+        trimmed = normalize_message_text(value)
         if not trimmed:
             raise ValueError("Message cannot be empty.")
         if len(trimmed) < 10:
@@ -58,7 +82,8 @@ class ScanRequest(BaseModel):
 
 
 def validate_message_text(value: str):
-    trimmed = value.strip()
+    """Shared text validation for non-Pydantic inputs (batch rows, OCR output)."""
+    trimmed = normalize_message_text(value)
     if not trimmed:
         raise ValueError("Message cannot be empty.")
     if len(trimmed) < 10:
@@ -69,6 +94,7 @@ def validate_message_text(value: str):
 
 
 def validate_source_value(value: str):
+    """Normalize and validate accepted source identifiers."""
     normalized = value.strip().lower()
     if normalized not in ALLOWED_SOURCES:
         raise ValueError("Invalid source.")
@@ -76,6 +102,7 @@ def validate_source_value(value: str):
 
 
 def parse_bool_form_value(value: str | None, default: bool):
+    """Parse HTML form boolean strings into strict bool values."""
     if value is None:
         return default
     normalized = value.strip().lower()
@@ -92,17 +119,29 @@ async def create_scan_record(
     message: str,
     source: str,
     username: str | None = None,
+    chat_id: str | None = None,
+    user_id: str | None = None,
     prediction: tuple | None = None,
+    skip_ai_label: bool = False,
 ):
     """
     Persist a Scan record asynchronously.
     Pass `prediction=(result, confidence, keywords)` when the caller has
     already awaited asyncio.to_thread(predict, ...) to avoid a double call.
+    Set `skip_ai_label=True` for batch ingestion to bypass the OpenRouter
+    HTTP call and use a local deterministic label instead, keeping batch
+    throughput fast regardless of AI labeling configuration.
     """
     if prediction is None:
         prediction = await asyncio.to_thread(predict, message)
 
     result, confidence, keywords = prediction
+    if skip_ai_label:
+        ai_label = _format_warning_label(
+            result=result, base_text=message, confidence=float(confidence)
+        )
+    else:
+        ai_label = await get_ai_label(message, float(confidence), result=result)
 
     record = Scan(
         message=message,
@@ -110,11 +149,14 @@ async def create_scan_record(
         confidence=round(float(confidence), 4),
         source=source,
         username=username,
+        chat_id=chat_id,
+        user_id=user_id,
         keywords=",".join(keywords),
+        ai_label=ai_label,
     )
     db.add(record)
-    await db.commit()        # FIX: async commit
-    await db.refresh(record) # FIX: async refresh
+    await db.commit()
+    await db.refresh(record)
     return record
 
 
@@ -122,8 +164,9 @@ async def create_scan_record(
 async def scan_message(
     request: Request,
     payload: ScanRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
+    """Scan one message payload and persist the resulting classification record."""
     try:
         prediction = await asyncio.to_thread(predict, payload.message)
         record = await create_scan_record(
@@ -131,6 +174,8 @@ async def scan_message(
             message=payload.message,
             source=payload.source,
             username=payload.username,
+            chat_id=payload.chat_id,
+            user_id=payload.user_id,
             prediction=prediction,
         )
         return serialize_scan(record)
@@ -144,8 +189,9 @@ async def scan_message(
 async def scan_ocr(
     request: Request,
     image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
+    """Run OCR + spam prediction for one uploaded image and persist the result."""
     if image.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=400,
@@ -206,10 +252,11 @@ async def scan_ocr(
 async def scan_batch(
     request: Request,
     file: UploadFile = File(...),
-    store_results: str | None = Form(default="false"),
+    store_results: str | None = Form(default="true"),
     default_source: str | None = Form(default="batch"),
     db: AsyncSession = Depends(get_db),
 ):
+    """Validate, score, and optionally persist many CSV rows in one request."""
     file_name = (file.filename or "").lower()
     if file.content_type not in ALLOWED_BATCH_TYPES and not file_name.endswith(".csv"):
         raise HTTPException(
@@ -222,7 +269,7 @@ async def scan_batch(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    should_store = parse_bool_form_value(store_results, default=False)
+    should_store = parse_bool_form_value(store_results, default=True)
 
     contents = await file.read()
     if not contents:
@@ -282,13 +329,14 @@ async def scan_batch(
     )
 
     # --- Build results ---
-    items         = []
-    processed_count = 0
-    failed_count    = len(failed_rows)
-    spam_count      = 0
-    ham_count       = 0
-    correct_count   = 0
-    labeled_count   = 0
+    items              = []
+    processed_count    = 0
+    failed_count       = len(failed_rows)
+    spam_count         = 0
+    ham_count          = 0
+    needs_review_count = 0
+    correct_count      = 0
+    labeled_count      = 0
     confusion = {
         "true_spam_pred_spam": 0,
         "true_spam_pred_ham":  0,
@@ -301,20 +349,25 @@ async def scan_batch(
         record_id  = None
 
         if should_store:
+            # skip_ai_label=True: use local deterministic label to avoid
+            # blocking HTTP calls to OpenRouter for every row in the batch.
             record = await create_scan_record(
                 db=db,
                 message=message,
                 source=source,
                 username=raw_username,
                 prediction=(predicted_label, confidence, keywords),
+                skip_ai_label=True,
             )
             record_id = record.id
 
         processed_count += 1
         if predicted_label == "spam":
             spam_count += 1
-        else:
+        elif predicted_label == "ham":
             ham_count += 1
+        else:
+            needs_review_count += 1
 
         is_correct = None
         if raw_expected:
@@ -388,19 +441,20 @@ async def scan_batch(
 
     return {
         "summary": {
-            "total":          len(items),
-            "processed":      processed_count,
-            "failed":         failed_count,
-            "spam_count":     spam_count,
-            "ham_count":      ham_count,
-            "labeled_count":  labeled_count,
-            "correct_count":  correct_count,
-            "accuracy":       (correct_count / labeled_count) if labeled_count else None,
-            "precision":      precision,
-            "recall":         recall,
-            "f1_score":       f1_score,
-            "stored_results": should_store,
-            "default_source": normalized_default_source,
+            "total":              len(items),
+            "processed":          processed_count,
+            "failed":             failed_count,
+            "spam_count":         spam_count,
+            "ham_count":          ham_count,
+            "needs_review_count": needs_review_count,
+            "labeled_count":      labeled_count,
+            "correct_count":      correct_count,
+            "accuracy":           (correct_count / labeled_count) if labeled_count else None,
+            "precision":          precision,
+            "recall":             recall,
+            "f1_score":           f1_score,
+            "stored_results":     should_store,
+            "default_source":     normalized_default_source,
         },
         "confusion_matrix": confusion if labeled_count else None,
         "items": items,

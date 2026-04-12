@@ -1,38 +1,49 @@
+"""History endpoints for retrieving, deleting, and refreshing scan records."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_db
 from database.schema import Scan
 from routes.common import serialize_scan
+from services.ai_labeler import get_ai_label
 
 
 router = APIRouter()
 
 
 @router.get("/history")
-def get_history(
+async def get_history(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     filter: str = Query(default=""),
     source: str = Query(default=""),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    query = db.query(Scan)
+    """Return paginated history records with optional result/source filters."""
+    base_stmt = select(Scan)
+    count_stmt = select(func.count(Scan.id)).select_from(Scan)
 
     if filter:
-        query = query.filter(Scan.result == filter.strip().lower())
+        normalized_filter = filter.strip().lower()
+        base_stmt = base_stmt.where(Scan.result == normalized_filter)
+        count_stmt = count_stmt.where(Scan.result == normalized_filter)
 
     if source:
-        query = query.filter(Scan.source == source.strip().lower())
+        normalized_source = source.strip().lower()
+        base_stmt = base_stmt.where(Scan.source == normalized_source)
+        count_stmt = count_stmt.where(Scan.source == normalized_source)
 
-    total = query.with_entities(func.count(Scan.id)).scalar() or 0
-    records = (
-        query.order_by(Scan.timestamp.desc())
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    records_result = await db.execute(
+        base_stmt.order_by(Scan.timestamp.desc())
         .offset((page - 1) * limit)
         .limit(limit)
-        .all()
     )
+    records = records_result.scalars().all()
 
     return {
         "data": [serialize_scan(record) for record in records],
@@ -43,11 +54,35 @@ def get_history(
 
 
 @router.delete("/history/{record_id}")
-def delete_history_record(record_id: int, db: Session = Depends(get_db)):
-    record = db.query(Scan).filter(Scan.id == record_id).first()
+async def delete_history_record(record_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete one history record by ID."""
+    result = await db.execute(select(Scan).where(Scan.id == record_id))
+    record = result.scalar_one_or_none()
+
     if record is None:
         raise HTTPException(status_code=404, detail="Record not found.")
 
-    db.delete(record)
-    db.commit()
+    await db.delete(record)
+    await db.commit()
     return {"success": True}
+
+
+@router.post("/history/{record_id}/regenerate-label")
+async def regenerate_ai_label(record_id: int, db: AsyncSession = Depends(get_db)):
+    """Force-refresh the AI label for an existing record."""
+    result = await db.execute(select(Scan).where(Scan.id == record_id))
+    record = result.scalar_one_or_none()
+
+    if record is None:
+        raise HTTPException(status_code=404, detail="Record not found.")
+
+    ai_label = await get_ai_label(
+        record.message,
+        confidence=1.0,
+        result=record.result,
+        force=True,
+    )
+    record.ai_label = ai_label
+    await db.commit()
+    await db.refresh(record)
+    return serialize_scan(record)

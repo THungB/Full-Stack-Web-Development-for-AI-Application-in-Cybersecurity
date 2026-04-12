@@ -13,6 +13,9 @@ def serialize_scan(record: Scan):
         "confidence": round(float(record.confidence), 4),
         "source": record.source,
         "username": record.username,
+        "chat_id": record.chat_id,
+        "user_id": record.user_id,
         "keywords": keywords,
+        "ai_label": record.ai_label,
         "timestamp": record.timestamp.isoformat() if record.timestamp else None,
     }

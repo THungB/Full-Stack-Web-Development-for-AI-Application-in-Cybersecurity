@@ -1,13 +1,50 @@
-@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #11203b;
-  background: #f6f3eb;
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --shell: 244 247 252;
+  --surface: 255 255 255;
+  --panel: 255 255 255;
+  --elevated: 247 250 255;
+  --elevated-strong: 239 244 252;
+  --line: 198 208 224;
+  --copy: 17 29 48;
+  --muted: 79 96 122;
+  --primary: 58 86 198;
+  --primary-strong: 43 67 176;
+  --primary-soft: 32 53 147;
+  --safe: 19 156 84;
+  --safe-strong: 6 123 66;
+  --threat: 209 60 83;
+  --threat-strong: 162 28 47;
+  --warning: 185 124 16;
+  --ink: 11 20 35;
+  color: rgb(var(--copy));
+  background: rgb(var(--shell));
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.dark {
+  --shell: 11 19 38;
+  --surface: 19 27 46;
+  --panel: 23 31 51;
+  --elevated: 34 42 61;
+  --elevated-strong: 45 52 73;
+  --line: 69 70 82;
+  --copy: 218 226 253;
+  --muted: 158 168 199;
+  --primary: 186 195 255;
+  --primary-strong: 67 85 185;
+  --primary-soft: 41 60 160;
+  --safe: 74 225 118;
+  --safe-strong: 0 185 84;
+  --threat: 255 179 173;
+  --threat-strong: 180 21 33;
+  --warning: 255 214 107;
+  --ink: 8 16 31;
 }
 
 html {
@@ -18,8 +55,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8f9fa;
-  color: #11203b;
+  background:
+    radial-gradient(circle at top right, rgba(var(--primary-strong), 0.1), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(var(--safe), 0.05), transparent 30%),
+    linear-gradient(180deg, rgba(var(--shell), 1) 0%, rgba(var(--shell), 1) 100%);
+  color: rgb(var(--copy));
 }
 
 * {
@@ -38,55 +78,93 @@ textarea {
 }
 
 ::selection {
-  background: rgba(249, 115, 22, 0.2);
+  background: rgba(var(--primary), 0.28);
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    @apply bg-shell text-copy;
+  }
+
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display text-ink;
+    @apply font-display text-copy;
   }
 
   p {
-    @apply text-steel;
+    @apply text-muted;
+  }
+
+  a {
+    @apply text-inherit no-underline;
   }
 }
 
 @layer components {
-  .panel {
-    @apply rounded-[28px] border border-white/70 bg-white/85 shadow-panel backdrop-blur;
+  .app-panel {
+    @apply rounded-3xl border border-line/30 bg-panel shadow-panel;
   }
 
-  .soft-panel {
-    @apply rounded-3xl border border-ink/10 bg-[#fffaf0]/90;
+  .app-panel-soft {
+    @apply rounded-3xl border border-line/25 bg-surface shadow-panel;
   }
 
-  .field {
-    @apply w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition duration-200 placeholder:text-steel/60 focus:border-signal/40 focus:ring-4 focus:ring-signal/10;
+  .glass-panel {
+    @apply bg-elevated/90;
   }
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-signal disabled:cursor-not-allowed disabled:opacity-60;
+  .field-dark {
+    @apply w-full rounded-2xl border border-line/30 bg-elevated px-4 py-3 text-sm text-copy outline-none transition placeholder:text-muted/60 focus:border-primary/45 focus:ring-0;
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-0.5 hover:border-signal/40 hover:text-signal;
+  .btn-primary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-strong px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  .chip {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  .btn-secondary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-line/30 bg-surface px-5 py-3 text-sm font-semibold text-copy transition hover:bg-elevated disabled:cursor-not-allowed disabled:opacity-50;
   }
 
-  .table-cell {
-    @apply border-b border-ink/10 px-4 py-4 align-top text-sm text-ink;
+  .status-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-line/35 bg-elevated px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
+  }
+
+  .metric-card {
+    @apply relative overflow-hidden rounded-3xl border border-line/25 bg-surface p-5 shadow-panel transition duration-200 hover:-translate-y-0.5 hover:border-line/45 hover:bg-elevated/70;
+  }
+
+  .table-row-divider {
+    @apply border-b border-line/10;
   }
 
   .grid-overlay {
     background-image:
-      linear-gradient(rgba(17, 32, 59, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17, 32, 59, 0.05) 1px, transparent 1px);
+      linear-gradient(rgba(var(--copy), 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--copy), 0.025) 1px, transparent 1px);
     background-size: 28px 28px;
+  }
+
+  .enter-fade {
+    animation: enter-fade 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .stagger-item {
+    animation: enter-fade 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

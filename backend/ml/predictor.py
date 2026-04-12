@@ -73,5 +73,10 @@ def predict(text: str):
         prediction = MODEL.predict(features_df)[0]
         spam_confidence = 0.85 if str(prediction).lower() == "spam" else 0.15
 
-    result = "spam" if spam_confidence >= 0.5 else "ham"
+    if spam_confidence >= 0.60:
+        result = "spam"
+    elif spam_confidence >= 0.41:
+        result = "needs_review"
+    else:
+        result = "ham"
     return result, spam_confidence, keywords

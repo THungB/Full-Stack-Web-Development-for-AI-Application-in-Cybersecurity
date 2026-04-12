@@ -30,10 +30,11 @@ class Settings(BaseSettings):
     """
     
     model_config = SettingsConfigDict(
-        env_file=BASE_DIR.parent / ".env",
+        env_file=(BASE_DIR / ".env", BASE_DIR.parent / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         env_prefix="",
+        extra="ignore",
     )
     
     # --- Database Configuration ---
@@ -66,10 +67,41 @@ class Settings(BaseSettings):
             return v.strip().lower() not in {"0", "false", "no"}
         return v
     
+    @field_validator("ai_label_enabled", mode="before")
+    @classmethod
+    def parse_bool_ai_label_enabled(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.strip().lower() not in {"0", "false", "no"}
+        return v
+    
     # --- Telegram Bot Configuration ---
     telegram_bot_token: str | None = Field(
         default=None,
         description="Telegram bot token. If not set, Telegram integration is disabled.",
+    )
+    
+    # --- OpenRouter AI Labeling ---
+    openrouter_api_key: str | None = Field(
+        default=None,
+        description="OpenRouter API key for AI label generation.",
+    )
+    openrouter_model: str = Field(
+        default="google/gemini-2.0-flash-lite-001",
+        description="OpenRouter model ID to use for spam label generation.",
+    )
+    ai_label_enabled: bool = Field(
+        default=True,
+        description="Enable/disable AI label generation via OpenRouter.",
+    )
+    ai_label_min_confidence: float = Field(
+        default=0.60,
+        description="Minimum confidence threshold to trigger AI labeling.",
+    )
+    ai_label_timeout: float = Field(
+        default=5.0,
+        description="Timeout in seconds for OpenRouter API calls.",
     )
     
     # --- Rate Limiting Configuration ---
@@ -111,9 +143,5 @@ class Settings(BaseSettings):
         default="1.0.0",
         description="API version.",
     )
-    
-
-
-
 # Global settings instance — use this throughout the application
 settings = Settings()

@@ -36,12 +36,12 @@ export function ToastProvider({ children }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto rounded-2xl border px-4 py-3 shadow-panel ${
+            className={`pointer-events-auto rounded-2xl border px-4 py-3 shadow-panel backdrop-blur-xl ${
               toast.tone === "error"
-                ? "border-danger/20 bg-white text-danger"
+                ? "border-threat/20 bg-panel/95 text-threat"
                 : toast.tone === "success"
-                  ? "border-safe/20 bg-white text-safe"
-                  : "border-ink/10 bg-white text-ink"
+                  ? "border-safe/20 bg-panel/95 text-safe"
+                  : "border-line/20 bg-panel/95 text-copy"
             }`}
           >
             <div className="flex items-start justify-between gap-4">

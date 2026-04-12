@@ -1,17 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Spam Detector Assistant",
-  "version": "1.0.0",
-  "description": "Scan highlighted text with the local spam detection API.",
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["http://localhost:8000/*", "http://127.0.0.1:8000/*"],
+  "version": "2.0.0",
+  "description": "Realtime spam/ham assistant overlay for Telegram Web.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://web.telegram.org/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "matches": ["https://web.telegram.org/*"],
+      "js": ["selectors.js", "content.js"],
+      "css": ["styles.css"]
     }
   ]
 }

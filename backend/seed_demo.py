@@ -19,7 +19,7 @@ async def main(reset: bool = False):
             count = await seed_demo_data_if_empty(db)
             print(f"Seeded {count} demo records.")
         finally:
-            pass  # SessionLocal as context manager handles closing
+            pass
 
 
 if __name__ == "__main__":

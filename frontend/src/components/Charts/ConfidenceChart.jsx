@@ -2,49 +2,79 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { formatCompactNumber } from "../../utils/format";
 
 export default function ConfidenceChart({ data }) {
   return (
-    <div className="panel p-5 sm:p-6">
-      <div className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-steel">
-          Confidence
+    <div className="app-panel p-6">
+      <div className="mb-8">
+        <p className="text-lg font-bold text-copy">Confidence Distribution</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+          Bucketed model confidence split by ham and spam outcomes.
         </p>
-        <h3 className="mt-2 text-2xl font-bold">Confidence score distribution</h3>
       </div>
-      <div className="h-[260px] sm:h-[320px]">
+
+      <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <CartesianGrid stroke="rgba(17,32,59,0.08)" strokeDasharray="3 3" />
-            <XAxis dataKey="range" tick={{ fill: "#5f6f8c", fontSize: 11 }} />
-            <YAxis tick={{ fill: "#5f6f8c", fontSize: 11 }} width={30} />
+            <CartesianGrid
+              stroke="rgba(218, 226, 253, 0.08)"
+              strokeDasharray="4 4"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="range"
+              tick={{ fill: "#94a3c7", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: "#94a3c7", fontSize: 11 }}
+              width={34}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip
               contentStyle={{
                 borderRadius: 16,
-                border: "1px solid rgba(17,32,59,0.08)",
+                border: "1px solid rgba(69, 70, 82, 0.25)",
+                backgroundColor: "rgba(23, 31, 51, 0.95)",
+                color: "#dae2fd",
               }}
+              formatter={(value) => [formatCompactNumber(value), "Signals"]}
+              labelStyle={{ color: "#dae2fd" }}
+              itemStyle={{ color: "#dae2fd" }}
             />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
             <Bar
               dataKey="spam"
               stackId="confidence"
-              fill="#e11d48"
+              fill="#ffb3ad"
               radius={[8, 8, 0, 0]}
             />
             <Bar
               dataKey="ham"
               stackId="confidence"
-              fill="#0f766e"
+              fill="#bac3ff"
               radius={[8, 8, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="mt-6 flex flex-wrap justify-center gap-8 border-t border-line/10 pt-6">
+        <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-copy/55">
+          <span className="h-2 w-10 rounded-full bg-primary" />
+          Verified ham score
+        </span>
+        <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-copy/55">
+          <span className="h-2 w-10 rounded-full bg-threat" />
+          Flagged spam score
+        </span>
       </div>
     </div>
   );
