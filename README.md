@@ -3,13 +3,17 @@
 [English](README.md) | [Tiếng Việt](README_vi.md)
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](#)
 [![Python](https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white)](#)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](#)
-[![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
+[![SQLite](https://img.shields.io/badge/SQLite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](#)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](#)
 
-> A comprehensive full-stack spam detection platform integrating an OCR scanner, Telegram bot, browser extension, and analytics dashboard.
+> **COS30049 — Assignment 3**  
+> A comprehensive, multi-channel spam detection platform powered by a Scikit-learn LinearSVC pipeline,
+> integrated with a React dashboard, FastAPI backend, OCR scanner, Telegram bot, browser extension,
+> and an AI-enrichment layer via OpenRouter (Gemini Flash Lite).
 
 ---
 

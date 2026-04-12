@@ -33,7 +33,7 @@
 
 .spam-guard-scan-container { display: block; padding: 2px 0 4px 45px; z-index: 10; }
 .spam-guard-scan-btn { background: rgba(130, 160, 255, 0.18); border: 1px solid rgba(130, 160, 255, 0.3); color: #e5ecff; border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-block; transition: background 0.2s; }
-.spam-guard-scan-btn:hover { background: rgba(130, 160, 255, 0.4); }
+.spam-guard-scan-btn:active { background: rgba(130, 160, 255, 0.4); }
 .spam-guard-scan-btn.is-scanning { background: rgba(255, 200, 60, 0.3); border-color: rgba(255, 200, 60, 0.5); }
 .spam-guard-scan-btn.is-scanned { background: rgba(87, 219, 157, 0.22); color: #66e6b1; border-color: rgba(87, 219, 157, 0.4); }
 .spam-guard-scan-btn.is-scanned-spam { background: rgba(220, 60, 60, 0.25); color: #ff6b6b; border-color: rgba(220, 60, 60, 0.5); }
