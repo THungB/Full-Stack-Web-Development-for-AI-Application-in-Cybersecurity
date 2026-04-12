@@ -21,7 +21,7 @@ from database.database import get_db
 from database.schema import Scan
 from ml.predictor import predict
 from routes.common import serialize_scan
-from services.ai_labeler import get_ai_label
+from services.ai_labeler import _format_warning_label, get_ai_label
 
 try:
     import pytesseract
@@ -59,8 +59,8 @@ class ScanRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     source: str = Field(default="website")
     username: str | None = Field(default=None, max_length=255)
-    chat_id: str | None = Field(default=None, max_length=50) 
-    user_id: str | None = Field(default=None, max_length=50) 
+    chat_id: str | None = Field(default=None, max_length=50)
+    user_id: str | None = Field(default=None, max_length=50)
 
     @field_validator("message")
     @classmethod
@@ -122,17 +122,26 @@ async def create_scan_record(
     chat_id: str | None = None,
     user_id: str | None = None,
     prediction: tuple | None = None,
+    skip_ai_label: bool = False,
 ):
     """
     Persist a Scan record asynchronously.
     Pass `prediction=(result, confidence, keywords)` when the caller has
     already awaited asyncio.to_thread(predict, ...) to avoid a double call.
+    Set `skip_ai_label=True` for batch ingestion to bypass the OpenRouter
+    HTTP call and use a local deterministic label instead, keeping batch
+    throughput fast regardless of AI labeling configuration.
     """
     if prediction is None:
         prediction = await asyncio.to_thread(predict, message)
 
     result, confidence, keywords = prediction
-    ai_label = await get_ai_label(message, float(confidence), result=result)
+    if skip_ai_label:
+        ai_label = _format_warning_label(
+            result=result, base_text=message, confidence=float(confidence)
+        )
+    else:
+        ai_label = await get_ai_label(message, float(confidence), result=result)
 
     record = Scan(
         message=message,
@@ -155,7 +164,7 @@ async def create_scan_record(
 async def scan_message(
     request: Request,
     payload: ScanRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Scan one message payload and persist the resulting classification record."""
     try:
@@ -180,7 +189,7 @@ async def scan_message(
 async def scan_ocr(
     request: Request,
     image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Run OCR + spam prediction for one uploaded image and persist the result."""
     if image.content_type not in ALLOWED_IMAGE_TYPES:
@@ -320,14 +329,14 @@ async def scan_batch(
     )
 
     # --- Build results ---
-    items         = []
-    processed_count = 0
-    failed_count    = len(failed_rows)
-    spam_count      = 0
-    ham_count       = 0
+    items              = []
+    processed_count    = 0
+    failed_count       = len(failed_rows)
+    spam_count         = 0
+    ham_count          = 0
     needs_review_count = 0
-    correct_count   = 0
-    labeled_count   = 0
+    correct_count      = 0
+    labeled_count      = 0
     confusion = {
         "true_spam_pred_spam": 0,
         "true_spam_pred_ham":  0,
@@ -340,12 +349,15 @@ async def scan_batch(
         record_id  = None
 
         if should_store:
+            # skip_ai_label=True: use local deterministic label to avoid
+            # blocking HTTP calls to OpenRouter for every row in the batch.
             record = await create_scan_record(
                 db=db,
                 message=message,
                 source=source,
                 username=raw_username,
                 prediction=(predicted_label, confidence, keywords),
+                skip_ai_label=True,
             )
             record_id = record.id
 
@@ -429,20 +441,20 @@ async def scan_batch(
 
     return {
         "summary": {
-            "total":          len(items),
-            "processed":      processed_count,
-            "failed":         failed_count,
-            "spam_count":     spam_count,
-            "ham_count":      ham_count,
+            "total":              len(items),
+            "processed":          processed_count,
+            "failed":             failed_count,
+            "spam_count":         spam_count,
+            "ham_count":          ham_count,
             "needs_review_count": needs_review_count,
-            "labeled_count":  labeled_count,
-            "correct_count":  correct_count,
-            "accuracy":       (correct_count / labeled_count) if labeled_count else None,
-            "precision":      precision,
-            "recall":         recall,
-            "f1_score":       f1_score,
-            "stored_results": should_store,
-            "default_source": normalized_default_source,
+            "labeled_count":      labeled_count,
+            "correct_count":      correct_count,
+            "accuracy":           (correct_count / labeled_count) if labeled_count else None,
+            "precision":          precision,
+            "recall":             recall,
+            "f1_score":           f1_score,
+            "stored_results":     should_store,
+            "default_source":     normalized_default_source,
         },
         "confusion_matrix": confusion if labeled_count else None,
         "items": items,
