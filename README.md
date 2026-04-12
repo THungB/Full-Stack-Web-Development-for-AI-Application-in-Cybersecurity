@@ -44,6 +44,15 @@
 
 ## Quick Start
 
+### 0. Clone the Repository
+
+First, clone the project to your local machine:
+
+```bash
+git clone https://github.com/THungB/Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity.git
+cd Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity
+```
+
 ### 1. One-Click Start (Windows)
 
 Easily launch both the frontend and backend using our shortcut scripts:
@@ -131,8 +140,8 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ## Important Note
 
-> - You **must** populate the `TELEGRAM_BOT_TOKEN` in your backend `.env` file for the bot module to run. You can acquire a token from [@BotFather](https://t.me/botfather) on Telegram.
-> - You **must** populate `OPENROUTER_API_KEY` for the AI Label summarization to function properly.
+> - You **must** put the `TELEGRAM_BOT_TOKEN` in your backend `.env` file for the bot module to run. You can acquire a token from [@BotFather](https://t.me/botfather) on Telegram.
+> - You **must** put `OPENROUTER_API_KEY` for the AI Label summarization to function properly.
 > - Ensure you have the `Tesseract OCR` engine installed locally on your operating system for image scanning to work.
 > - By design, the **Telegram Bot** automatically monitors and scans messages exclusively within Telegram Group Chats. You must set up the bot to join a group chat and promote it to admin to use the bot. For scanning direct 1-on-1 private messages, please use the **Browser Extension** highlight tool.
 
@@ -160,6 +169,7 @@ For developers looking to contribute or understand the codebase, here are the of
 - **[FastAPI](https://fastapi.tiangolo.com/):** Documentation for the asynchronous Python backend.
 - **[Vite](https://vitejs.dev/guide/):** Documentation for our frontend build tool.
 - **[Tesseract OCR](https://tesseract-ocr.github.io/):** Guide on installing the OCR engine for image scanning.
+- **[Telegram Bot](https://core.telegram.org/bots/tutorial):** Guide on everything you need to know to build your Telegram Bot.
 
 ---
 

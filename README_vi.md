@@ -9,7 +9,7 @@
 [![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](#)
 
-> Nền tảng phát hiện thư rác toàn diện tích hợp máy quét OCR, bot Telegram, tiện ích mở rộng trình duyệt và bảng điều khiển phân tích.
+> Nền tảng phát hiện tin nhắn rác toàn diện tích hợp máy quét OCR, bot Telegram, tiện ích mở rộng trình duyệt và bảng điều khiển phân tích.
 
 ---
 
@@ -43,6 +43,15 @@
 ---
 
 ## Bắt đầu nhanh
+
+### 0. Sao chép Mã nguồn (Clone)
+
+Mở Terminal, PowerShell hoặc Command Prompt và tải toàn bộ mã nguồn của dự án về máy tính của bạn:
+
+```bash
+git clone https://github.com/THungB/Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity.git
+cd Full-Stack-Web-Development-for-AI-Application-in-Cybersecurity
+```
 
 ### 1. Chạy tự động - Windows
 
@@ -160,6 +169,7 @@ Dành cho các nhà phát triển muốn tìm hiểu sâu về hệ thống:
 - **[FastAPI](https://fastapi.tiangolo.com/):** Tài liệu hướng dẫn sử dụng API Backend bất đồng bộ (Python).
 - **[Vite](https://vitejs.dev/guide/):** Công cụ đóng gói và khởi chạy frontend của dự án.
 - **[Tesseract OCR](https://tesseract-ocr.github.io/):** Hướng dẫn cài đặt phần mềm nhận diện chữ trên hình ảnh (OCR).
+- **[Telegram Bot](https://core.telegram.org/bots/tutorial):** Hướng dẫn mọi thứ bạn cần biết để xây dựng Bot Telegram.
 
 ---
 
