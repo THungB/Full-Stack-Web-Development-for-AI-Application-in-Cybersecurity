@@ -155,11 +155,11 @@ To run the bot locally, you must create a Telegram bot and get an API token:
 1. Open Telegram and search for the **@BotFather** bot.
 2. Send the `/start` command, followed by `/newbot`.
 3. Give your bot a display name and a unique username (ending in `bot`).
-4. BotFather will generate an **HTTP API Token** (Example: `110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw`).
+4. BotFather will generate an **HTTP API Token** (Example: `110201543:XXXXXXXXXXXXXXXXXX`).
 5. Copy this token and paste it securely into your `backend/.env` file:
 
 ```env
-TELEGRAM_BOT_TOKEN="110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw" # Put your real Bot Token here
+TELEGRAM_BOT_TOKEN="110201543:XXXXXXXXXXXXXXXXXX" # Put your real Bot Token here
 ```
 
 **Documentation:**

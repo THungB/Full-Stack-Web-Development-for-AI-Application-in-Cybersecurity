@@ -155,11 +155,11 @@ VITE_API_BASE_URL=http://localhost:8000
 1. Mở ứng dụng Telegram và tìm kiếm bot có tên **@BotFather**.
 2. Nhắn lệnh `/start`, sau đó nhập `/newbot`.
 3. Đặt Tên hiển thị và Username (điều kiện bắt buộc là phải kết thúc bằng chữ `bot`).
-4. BotFather sẽ cung cấp cho bạn một **HTTP API Token** (Ví dụ: `110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw`).
+4. BotFather sẽ cung cấp cho bạn một **HTTP API Token** (Ví dụ: `110201543:XXXXXXXXXXXXXXXXXX`).
 5. Sao chép và dán token này vào tệp `backend/.env` của bạn như sau:
 
 ```env
-TELEGRAM_BOT_TOKEN="110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw" # Bỏ Token Bot thật của bạn trong đây
+TELEGRAM_BOT_TOKEN="110201543:XXXXXXXXXXXXXXXXXX" # Bỏ Token Bot thật của bạn trong đây
 ```
 
 **Tài liệu Công nghệ:**
