@@ -1,60 +1,70 @@
 # Full-Stack Web Development for AI Application in Cybersecurity
 
-Full-stack spam detection project for COS30049 Assignment 3. The repository combines a React + Vite frontend, a FastAPI + SQLite backend, a Telegram bot, and a Chromium browser extension around a shared spam-classification workflow.
+[English](README.md) | [Tiếng Việt](README_vi.md)
 
-As of 2026-03-23, the repo already includes the planned website, OCR, Telegram, dashboard, history, and extension flows. It also includes extra scope beyond the original assignment plan: batch CSV testing, a `/health` endpoint, and demo data seeding for first-run experience.
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
+[![Python](https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white)](#)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](#)
+[![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](#)
 
-## Current Modules
+> A comprehensive full-stack spam detection platform integrating an OCR scanner, Telegram bot, browser extension, and analytics dashboard.
 
-- `frontend/`: React dashboard with routes for overview, scanning, and history.
-- `backend/`: FastAPI API, SQLite persistence, ML prediction flow, OCR handling, and health check.
-- `backend/bot/`: Telegram bot that forwards chat messages to the backend.
-- `browser-extension/`: Manifest V3 extension for scanning highlighted text in Chromium-based browsers.
-- `requirements/`: Assignment description and grading criteria PDFs.
-- `run-project.ps1` and `run-project.bat`: Convenience launchers for local frontend + backend startup.
+---
 
-## Progress By Assignment Timeline
+## Disclaimer
 
-| Timeline window | Planned deliverable | Status on 2026-03-23 | Notes |
-| --- | --- | --- | --- |
-| Mar 18 to 19 | Project setup, folder structure, FastAPI skeleton, CORS | Completed | Repo structure, launch scripts, FastAPI app, and CORS config are present. |
-| Mar 20 to 22 | API endpoints, SQLite schema, load pre-trained model | Completed | `/scan`, `/scan/ocr`, `/history`, `/stats`, and database-backed persistence are implemented. |
-| Mar 21 to 22 | Telegram bot integration | Completed | `backend/bot/telegram_bot.py` posts Telegram messages to `/scan`. |
-| Mar 23 to 27 | React frontend pages, Axios layer, OCR scanner | In Progress | Core pages and OCR UI are implemented; frontend polish is still active on 2026-03-23. |
-| Mar 28 to 30 | Charts, auto-refresh, CSV export | Completed | Dashboard charts, history polling, and CSV export are already in the repo. |
-| Mar 31 to Apr 2 | Browser extension | Completed | Manifest V3 extension and content script are present. |
-| Apr 1 to Apr 2 | OCR endpoint and integration | Completed | OCR upload flow is wired from frontend to backend. |
-| Apr 3 to Apr 5 | Testing, error handling, responsive polish | In Progress | Frontend tests exist, build succeeds, but backend automated tests are not evidenced and Vitest is blocked in this sandbox by `spawn EPERM`. |
-| Apr 6 to Apr 7 | Report and README | In Progress | Main docs exist and are being synchronized with actual repo state. |
-| Apr 8 to Apr 10 | Demo video and final submission | Pending | No repo evidence yet. |
+- **Educational Purpose:** This project was developed solely for academic purposes as part of the COS30049 coursework at Swinburne University of Technology.
+- **AI Accuracy:** The spam classification relies on experimental machine learning models and third-party AI APIs (OpenRouter). Results may contain inaccuracies or false positives. Please do not rely entirely on this application for critical security decisions.
+- **Data Privacy:** As this is an educational prototype (may get updated in future for other purposes), users are strongly advised **not** to scan or upload highly sensitive, personal, or confidential information.
+- **No Warranty:** This software is provided "as is" and without any guarantees or warranties of any kind.
 
-## Implemented Features
+---
 
-### Input Channels
+## Features
 
-- Website text scanning through `POST /scan`
-- OCR image scanning through `POST /scan/ocr`
-- Telegram bot relay through `backend/bot/telegram_bot.py`
-- Browser extension scan flow for highlighted text
-- Batch CSV testing through `POST /scan/batch` as extra scope
+- **Omni-channel Input:** Scan text from the website, OCR extraction, Telegram bot, or browser extension.
+- **AI-Powered Detection:** Classifies messages as Spam or Ham with confidence scoring and fallback support.
+- **Analytics Dashboard:** Visualize scan history and traffic with interactive charts.
+- **Batch Evaluation:** Test and evaluate AI models using CSV dataset batch uploads.
 
-### Frontend
+---
 
-- Routes: `/`, `/scan`, `/history`
-- Dashboard with summary cards and three Recharts visualizations
-- Scan workspace with text input, OCR scanner, batch tester, toast feedback, and system status
-- History page with filtering, sorting, auto-refresh, CSV export, and deletion
+## Project Modules
 
-### Backend
+| Module               | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `frontend/`          | React dashboard for overview, scanning, and history. |
+| `backend/`           | FastAPI, ML prediction, OCR handling, and SQLite.    |
+| `backend/bot/`       | Telegram bot that forwards chats to the backend.     |
+| `browser-extension/` | Extension for scanning highlighted text in browsers. |
 
-- FastAPI app with `/health`, `/scan`, `/scan/ocr`, `/scan/batch`, `/history`, `/stats`, and `DELETE /history/{id}`
-- SQLite persistence via SQLAlchemy
-- Fallback predictor support when a trained `.pkl` model is missing
-- Automatic demo seed when the database starts empty
+---
 
-## Run Locally
+## Quick Start
 
-### Frontend
+### 1. One-Click Start (Windows)
+
+Easily launch both the frontend and backend using our shortcut scripts:
+
+**PowerShell:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-project.ps1
+```
+
+**Command Prompt:**
+
+```bat
+run-project.bat
+```
+
+---
+
+### 2. Manual Setup
+
+#### Frontend
 
 ```bash
 cd frontend
@@ -62,116 +72,108 @@ npm install
 npm run dev
 ```
 
-Default dev URL: `http://localhost:5173`
-
-### Backend
+#### Backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate      # Windows
+# source .venv/bin/activate # Mac/Linux
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Default API URL: `http://localhost:8000`
-
-### Telegram Bot
+#### Telegram Bot
 
 ```bash
 cd backend
-.venv\Scripts\activate
+.venv\Scripts\activate      # Windows
+# source .venv/bin/activate # Mac/Linux
 python bot/telegram_bot.py
 ```
 
-Set `TELEGRAM_BOT_TOKEN` first. The bot posts to `FASTAPI_URL`, which defaults to `http://localhost:8000/scan`.
+---
 
-### Browser Extension
+## Environment Configuration
 
-1. Open the browser extensions page in Chrome, Coc Coc, or Opera.
-2. Enable Developer Mode.
-3. Choose **Load unpacked**.
-4. Select the `browser-extension/` folder.
+Create an `.env` file in your **backend** folder based on `.env_example`.
 
-The extension sends highlighted text to `http://localhost:8000/scan` with `source: "extension"`.
+**`backend/.env`**
 
-### Combined Startup Script
+```env
+# Required for API endpoints
+FASTAPI_URL=http://localhost:8000/scan
 
-On Windows, you can also run:
+# Required to run the Telegram Bot
+TELEGRAM_BOT_TOKEN="YOUR_TOKEN_BOT"
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\run-project.ps1
+# AI Model Configuration
+OPENROUTER_API_KEY="YOUR_API_KEY"
+OPENROUTER_MODEL="YOUR_AI_MODEL"
+
+# Additional backend configuration
+SPAM_MODEL_PATH=
+APP_SEED_DEMO=true
+DATABASE_URL=sqlite:///spam_detection.db
+AI_LABEL_ENABLED=true
+AI_LABEL_MIN_CONFIDENCE=0.60
+AI_LABEL_TIMEOUT=5.0
 ```
 
-or:
-
-```bat
-run-project.bat
-```
-
-## Environment Notes
-
-### Frontend
-
-`frontend/.env.example`
+If needed, set up your frontend `.env`:
+**`frontend/.env`**
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-### Backend
+---
 
-`backend/.env.example`
+## Important Note
+
+> - You **must** populate the `TELEGRAM_BOT_TOKEN` in your backend `.env` file for the bot module to run. You can acquire a token from [@BotFather](https://t.me/botfather) on Telegram.
+> - You **must** populate `OPENROUTER_API_KEY` for the AI Label summarization to function properly.
+> - Ensure you have the `Tesseract OCR` engine installed locally on your operating system for image scanning to work.
+> - By design, the **Telegram Bot** automatically monitors and scans messages exclusively within Telegram Group Chats. You must set up the bot to join a group chat and promote it to admin to use the bot. For scanning direct 1-on-1 private messages, please use the **Browser Extension** highlight tool.
+
+---
+
+## Documentation & Resources
+
+**Telegram Bot Setup Guide:**
+To run the bot locally, you must create a Telegram bot and get an API token:
+
+1. Open Telegram and search for the **@BotFather** bot.
+2. Send the `/start` command, followed by `/newbot`.
+3. Give your bot a display name and a unique username (ending in `bot`).
+4. BotFather will generate an **HTTP API Token** (Example: `110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw`).
+5. Copy this token and paste it securely into your `backend/.env` file:
 
 ```env
-FASTAPI_URL=http://localhost:8000/scan
-TELEGRAM_BOT_TOKEN=your-telegram-bot-token
-SPAM_MODEL_PATH=
-APP_SEED_DEMO=true
-DATABASE_URL=sqlite:///backend/spam_detection.db
+TELEGRAM_BOT_TOKEN="110201543:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw" # Put your real Bot Token here
 ```
 
-### Model Behavior
+**Documentation:**
+For developers looking to contribute or understand the codebase, here are the official references:
 
-- If a trained Assignment 2 model is available, place it at `backend/ml/spam_classifier.pkl` or another configured path.
-- If no model file is found, the backend still serves predictions with a fallback keyword-based predictor so the app can be exercised end-to-end.
+- **[React.js](https://react.dev/learn):** Documentation for the frontend UI components and hooks.
+- **[FastAPI](https://fastapi.tiangolo.com/):** Documentation for the asynchronous Python backend.
+- **[Vite](https://vitejs.dev/guide/):** Documentation for our frontend build tool.
+- **[Tesseract OCR](https://tesseract-ocr.github.io/):** Guide on installing the OCR engine for image scanning.
 
-### OCR Requirements
-
-- Install the Tesseract OCR engine separately on the machine.
-- Keep `pytesseract` and Pillow installed through backend dependencies.
-- The backend accepts PNG, JPG, and WebP uploads up to 5 MB for OCR scanning.
-
-### Batch CSV Workflow
-
-- Upload a UTF-8 CSV file through the Scan page batch tab.
-- The CSV must include a `message` column.
-- Optional columns include `expected_label`, `source`, and `username`.
-- `expected_label` enables accuracy, precision, recall, and F1 reporting.
-- Batch testing is implemented scope beyond the original assignment outline.
-
-## API Surface Documented From Code
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | Backend availability check |
-| `POST` | `/scan` | Scan one text message |
-| `POST` | `/scan/ocr` | OCR image upload and scan |
-| `POST` | `/scan/batch` | Batch CSV scan and evaluation |
-| `GET` | `/history` | Paginated scan history |
-| `DELETE` | `/history/{id}` | Delete one stored record |
-| `GET` | `/stats` | Dashboard summary and chart data |
-
-## Known Status
-
-- Frontend production build succeeds with `npm run build`.
-- Frontend Vitest execution in this environment is currently blocked by a sandbox startup error: `spawn EPERM`.
-- Backend automated tests are not evidenced in the repo yet.
-- Demo video and final submission artifacts are not evidenced in the repo yet.
+---
 
 ## Team Members
 
-- Nguyen Thanh Kien ([KindaRusty](https://github.com/KindaRusty))
-- Bui Tien Hung ([THungB](https://github.com/THungB))
-- Nguyen Huu Hieu ([huuhieu9925](https://github.com/huuhieu9925))
-- Truong Nam Hung ([NamHung276](https://github.com/NamHung276))
+This project was built by:
+
+- **Nguyen Thanh Kien** - [@KindaRusty](https://github.com/KindaRusty)
+- **Bui Tien Hung** - [@THungB](https://github.com/THungB)
+- **Nam Hung Truong** - [@NamHung276](https://github.com/NamHung276)
+- **Nguyen Huu Hieu** - [@huuhieu9925](https://github.com/huuhieu9925)
+
+---
+
+## Acknowledgements
+
+We would like to express our sincere gratitude to our tutors at **Swinburne University of Technology Da Nang**: **Mr. Dang Phuoc Nhat** and **Ms. Tran Ly Quynh**, for their invaluable guidance, feedback, and support throughout the development of this application.

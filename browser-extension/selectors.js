@@ -5,7 +5,7 @@
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"][data-tab]',
       'div[contenteditable="true"]',
-      'textarea',
+      "textarea",
     ],
     sendButtonCandidates: [
       'button[aria-label*="Send"]',
@@ -15,10 +15,8 @@
       'button[data-testid*="send"]',
     ],
     messageCandidates: [
-      '[data-message-id]',
-      '[class*="message"]',
-      '[class*="bubble"]',
-      '[class*="text-content"]',
+      "[data-mid]",
+      "[data-message-id]",
       '[class*="Message"]',
     ],
     incomingHints: ["incoming", "message-in", "is-in", "peer", "left"],

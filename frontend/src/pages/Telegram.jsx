@@ -135,8 +135,19 @@ export default function Telegram() {
     year: "numeric"
   }).format(new Date());
   
-const [chartView, setChartView] = useState("day");
-  const chartData = chartView === "day" ? trafficDay : trafficMonth;
+  const [chartView, setChartView] = useState("day");
+  
+  const chartData = (chartView === "day" ? trafficDay : trafficMonth).map((item, index, arr) => {
+    if (chartView === "day") {
+      const d = new Date();
+      d.setDate(d.getDate() - (arr.length - 1 - index));
+      return {
+        ...item,
+        name: `${d.getDate()}/${d.getMonth() + 1}`
+      };
+    }
+    return item;
+  });
 
   const uniqueUsers = [...new Set(data.filter(m => m.username).map(m => m.username))];
   const activeUser = uniqueUsers.length > 0 ? `@${uniqueUsers[0]}` : "Awaiting Telemetry";

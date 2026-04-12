@@ -29,7 +29,12 @@ export function formatCompactNumber(value) {
 export function formatDateTime(value) {
   if (!value) return "Unknown";
 
-  const date = new Date(value);
+  let stringValue = String(value);
+  if (!stringValue.endsWith("Z") && !stringValue.includes("+")) {
+    stringValue = stringValue.replace(" ", "T") + "Z";
+  }
+
+  const date = new Date(stringValue);
 
   if (Number.isNaN(date.getTime())) return "Unknown";
 
@@ -42,7 +47,12 @@ export function formatDateTime(value) {
 export function formatShortDate(value) {
   if (!value) return "N/A";
 
-  const date = new Date(value);
+  let stringValue = String(value);
+  if (!stringValue.endsWith("Z") && !stringValue.includes("+")) {
+    stringValue = stringValue.replace(" ", "T") + "Z";
+  }
+
+  const date = new Date(stringValue);
   if (Number.isNaN(date.getTime())) return "N/A";
 
   return new Intl.DateTimeFormat("en-US", {

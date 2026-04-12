@@ -1,0 +1,39 @@
+#spam-guard-panel { position: fixed; right: 14px; top: 84px; z-index: 2147483647; width: min(340px, calc(100vw - 28px)); border-radius: 14px; background: rgba(9, 17, 35, 0.96); color: #e5ecff; border: 1px solid rgba(130, 160, 255, 0.22); box-shadow: 0 18px 45px rgba(2, 6, 18, 0.5); font-family: Segoe UI, Arial, sans-serif; backdrop-filter: blur(8px); }
+#spam-guard-panel.is-collapsed .spam-guard-body, #spam-guard-panel.is-collapsed .spam-guard-footer { display: none; }
+.spam-guard-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 8px; border-bottom: 1px solid rgba(130, 160, 255, 0.16); }
+.spam-guard-kicker { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(164, 189, 255, 0.84); font-weight: 700; }
+.spam-guard-title { margin-top: 2px; font-size: 14px; font-weight: 700; }
+.spam-guard-collapse, .spam-guard-toggle-visibility { width: 28px; height: 28px; border: none; border-radius: 999px; background: rgba(130, 160, 255, 0.18); color: #e5ecff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.spam-guard-controls { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; }
+.spam-guard-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.spam-guard-toggle-label { font-size: 12px; font-weight: 600; color: rgba(229, 236, 255, 0.88); }
+.spam-guard-status-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; padding: 5px 8px; border-radius: 999px; background: rgba(130, 160, 255, 0.15); }
+.spam-guard-status-badge[data-status="offline"], .spam-guard-status-badge[data-status="error"] { background: rgba(255, 110, 144, 0.2); }
+.spam-guard-status-badge[data-status="done"] { background: rgba(87, 219, 157, 0.22); }
+.spam-guard-body { padding: 8px 12px 12px; }
+.spam-guard-message { min-height: 56px; font-size: 13px; line-height: 1.5; color: rgba(229, 236, 255, 0.9); }
+.spam-guard-meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.spam-guard-pill { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 5px 8px; border-radius: 999px; background: rgba(130, 160, 255, 0.17); }
+.spam-guard-footer { border-top: 1px solid rgba(130, 160, 255, 0.16); padding: 10px 12px 12px; }
+.spam-guard-advice-level { font-size: 11px; letter-spacing: 0.1em; font-weight: 800; }
+.spam-guard-advice-level[data-level="safe"] { color: #66e6b1; } .spam-guard-advice-level[data-level="caution"] { color: #ffd96a; } .spam-guard-advice-level[data-level="risky"] { color: #ff8aa7; } .spam-guard-advice-level[data-level="review"] { color: #ffd96a; }
+.spam-guard-result[data-level="risky"] { background: rgba(255,100,130,0.2); color: #ff8aa7; } .spam-guard-result[data-level="caution"] { background: rgba(255,200,60,0.18); color: #ffd96a; } .spam-guard-result[data-level="safe"] { background: rgba(80,210,150,0.18); color: #66e6b1; }
+.spam-guard-advice-text { margin-top: 4px; font-size: 12px; line-height: 1.45; color: rgba(229, 236, 255, 0.92); }
+.spam-guard-composer { outline: 2px solid rgba(110, 152, 255, 0.68) !important; outline-offset: 2px !important; border-radius: 8px !important; }
+.spam-guard-composer-badge { position: absolute; transform: translateY(-128%); right: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; background: rgba(9, 17, 35, 0.95); color: #e5ecff; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(130, 160, 255, 0.25); z-index: 2147483646; white-space: nowrap; }
+.spam-guard-composer-badge[data-enabled="false"] { border-color: rgba(255, 128, 155, 0.25); color: rgba(255, 171, 189, 0.96); }
+@media (max-width: 960px) { #spam-guard-panel { right: 10px; top: auto; bottom: 10px; width: min(95vw, 340px); } }
+#spam-guard-panel.is-hidden { width: auto !important; min-width: 0 !important; border-radius: 999px !important; padding: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; backdrop-filter: none !important; }
+#spam-guard-panel.is-hidden .spam-guard-header { padding: 0; border: none; }
+#spam-guard-panel.is-hidden .spam-guard-title-wrap, #spam-guard-panel.is-hidden .spam-guard-collapse, #spam-guard-panel.is-hidden .spam-guard-controls, #spam-guard-panel.is-hidden .spam-guard-body, #spam-guard-panel.is-hidden .spam-guard-footer { display: none !important; }
+#spam-guard-panel.is-hidden .spam-guard-toggle-visibility { width: 48px; height: 48px; background: rgba(43, 68, 128, 0.96); border: 1px solid rgba(130, 160, 255, 0.4); box-shadow: 0 4px 12px rgba(2, 6, 18, 0.5); }
+#spam-guard-panel.is-hidden .spam-guard-toggle-visibility svg { width: 24px !important; height: 24px !important; }
+#spam-guard-panel:not(.is-hidden) .icon-eye { display: none; } #spam-guard-panel:not(.is-hidden) .icon-eye-off { display: block; }
+#spam-guard-panel.is-hidden .icon-eye { display: block; } #spam-guard-panel.is-hidden .icon-eye-off { display: none; }
+
+.spam-guard-scan-container { display: block; padding: 2px 0 4px 45px; z-index: 10; }
+.spam-guard-scan-btn { background: rgba(130, 160, 255, 0.18); border: 1px solid rgba(130, 160, 255, 0.3); color: #e5ecff; border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-block; transition: background 0.2s; }
+.spam-guard-scan-btn:hover { background: rgba(130, 160, 255, 0.4); }
+.spam-guard-scan-btn.is-scanning { background: rgba(255, 200, 60, 0.3); border-color: rgba(255, 200, 60, 0.5); }
+.spam-guard-scan-btn.is-scanned { background: rgba(87, 219, 157, 0.22); color: #66e6b1; border-color: rgba(87, 219, 157, 0.4); }
+.spam-guard-scan-btn.is-scanned-spam { background: rgba(220, 60, 60, 0.25); color: #ff6b6b; border-color: rgba(220, 60, 60, 0.5); }

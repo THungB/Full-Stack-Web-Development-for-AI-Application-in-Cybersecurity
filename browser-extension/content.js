@@ -1,8 +1,4 @@
 (function () {
-  // Telegram Web content runtime:
-  // - Detect composer + messages
-  // - Queue and throttle scan requests
-  // - Render a floating moderation panel with latest decision
   const selectors = window.TelegramSpamGuardSelectors || {};
   const API_URL = "http://localhost:8000/scan";
   const WORD_THRESHOLD_DEFAULT = 10;
@@ -10,7 +6,6 @@
   const REQUEST_TIMEOUT_MS = 8000;
   const MAX_CONCURRENCY = 2;
   const REALTIME_DEBOUNCE_MS = 400;
-  const HOVER_SCAN_DELAY_MS = 2000;
   const STORAGE_KEYS = {
     autoScanEnabled: "autoScanEnabled",
     minWords: "minWords",
@@ -25,7 +20,6 @@
       panelCollapsed: false,
       panelVisible: true,
     },
-
     status: "idle",
     composer: null,
     composerBadge: null,
@@ -37,17 +31,12 @@
     running: 0,
     inFlightKeys: new Set(),
     cache: new Map(),
-    incomingSeen: new Set(),
-    hoverTimer: null,
-    hoverFingerprint: "",
-    hoveredMessageEl: null,
     lastDraft: "",
     draftDebounceTimer: null,
-    healthCheckTimer: null,
     locationTimer: null,
     composerObserver: null,
-    incomingObserver: null,
     composerRefreshQueued: false,
+    botPassTimer: null,
   };
 
   init().catch((error) => {
@@ -55,12 +44,9 @@
   });
 
   async function init() {
-    // Guard: only activate on Telegram Web to avoid side effects on other pages.
     if (!isTelegramWeb()) {
       return;
     }
-
-    injectStyles();
     createPanel();
     await loadSettings();
     syncPanelControls();
@@ -70,6 +56,9 @@
     setupLocationWatcher();
     setupComposerObserver();
     refreshComposer();
+
+    // Periodically inject buttons into new messages
+    state.botPassTimer = window.setInterval(injectButtonsPass, 1000);
   }
 
   function isTelegramWeb() {
@@ -80,20 +69,13 @@
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("input", onInput, true);
     document.addEventListener("click", onClick, true);
-    document.addEventListener("mouseover", onMouseOver, true);
-    document.addEventListener("mouseout", onMouseOut, true);
   }
 
   function setupLocationWatcher() {
-    // Reset per-chat transient state when route/chat context changes.
     state.locationTimer = window.setInterval(() => {
       const current = getRouteKey();
       if (state.routeKey !== current) {
         state.routeKey = current;
-        state.incomingSeen.clear();
-        clearHoverTimer();
-        state.hoveredMessageEl = null;
-        state.hoverFingerprint = "";
         state.lastDraft = "";
         refreshComposer();
         updateStatus("watching", "Chat changed. Watching new thread.");
@@ -102,51 +84,90 @@
   }
 
   function setupComposerObserver() {
-    // Observe DOM churn and rebind composer hooks after Telegram UI rerenders.
     if (state.composerObserver) {
       state.composerObserver.disconnect();
     }
-
     state.composerObserver = new MutationObserver((mutations) => {
       if (mutations.some((mutation) => isExtensionNode(mutation.target))) {
         return;
       }
       queueComposerRefresh();
     });
-
     state.composerObserver.observe(document.body, {
       childList: true,
       subtree: true,
     });
   }
 
-  function setupIncomingObserver() {
-    // Observe newly inserted incoming messages for automatic scan candidates.
-    if (state.incomingObserver) {
-      state.incomingObserver.disconnect();
+  function injectButtonsPass() {
+    // 1. Gather all potential message nodes based on our selectors
+    const rawCandidates = collectCandidates(selectors.messageCandidates);
+
+    // 2. Filter out giant chat history lists to avoid pinning buttons to the top of the screen
+    const validNodes = [];
+    for (const node of rawCandidates) {
+      if (isExtensionNode(node)) continue;
+      const cls = (node.className || "").toString().toLowerCase();
+      if (
+        cls.includes("list") ||
+        cls.includes("scroll") ||
+        cls.includes("history")
+      )
+        continue;
+      validNodes.push(node);
     }
 
-    state.incomingObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (isExtensionNode(mutation.target)) {
-          continue;
+    const rootNodes = new Set();
+    for (const node of validNodes) {
+      let current = node.parentElement;
+      let hasValidAncestor = false;
+      while (current && current !== document.body) {
+        if (validNodes.includes(current)) {
+          hasValidAncestor = true;
+          break;
         }
-        for (const node of mutation.addedNodes) {
-          if (!(node instanceof HTMLElement)) {
-            continue;
-          }
-          if (isExtensionNode(node)) {
-            continue;
-          }
-          processIncomingNode(node);
-        }
+        current = current.parentElement;
       }
-    });
+      if (!hasValidAncestor) {
+        rootNodes.add(node);
+      }
+    }
 
-    state.incomingObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    // 4. Inject button exactly once per message!
+    for (const root of rootNodes) {
+      // Skip if this branch was already processed previously
+      if (root.dataset.spamGuardButtonInjected === "true") continue;
+
+      const text = extractText(root);
+      if (!text || countWords(text) <= state.settings.minWords) continue;
+
+      const direction = inferDirection(root);
+      if (direction !== "incoming") continue;
+
+      // Safety net: mark this root AND all its inner nested layers as processed!
+      root.dataset.spamGuardButtonInjected = "true";
+      root
+        .querySelectorAll(selectors.messageCandidates.join(","))
+        .forEach((child) => {
+          child.dataset.spamGuardButtonInjected = "true";
+        });
+
+      const btnContainer = document.createElement("div");
+      btnContainer.className = "spam-guard-scan-container";
+      btnContainer.style.paddingLeft = "45px";
+      btnContainer.style.marginBottom = "4px";
+      btnContainer.style.zIndex = "10";
+
+      const btn = document.createElement("button");
+      btn.className = "spam-guard-scan-btn";
+      btn.innerText = "Click for scan";
+      btn.dataset.scanText = text;
+      btn.dataset.direction = direction;
+      btnContainer.appendChild(btn);
+
+      if (!root.parentElement) continue;
+      root.parentElement.insertBefore(btnContainer, root);
+    }
   }
 
   function refreshComposer() {
@@ -156,10 +177,7 @@
       state.composer = null;
       return;
     }
-
-    if (state.composer === composer) {
-      return;
-    }
+    if (state.composer === composer) return;
 
     clearComposerHighlight();
     state.composer = composer;
@@ -169,9 +187,7 @@
   }
 
   function queueComposerRefresh() {
-    if (state.composerRefreshQueued) {
-      return;
-    }
+    if (state.composerRefreshQueued) return;
     state.composerRefreshQueued = true;
     window.requestAnimationFrame(() => {
       state.composerRefreshQueued = false;
@@ -181,9 +197,7 @@
 
   function findComposer() {
     const candidates = collectCandidates(selectors.composerCandidates);
-    if (!candidates.length) {
-      return null;
-    }
+    if (!candidates.length) return null;
 
     const scored = candidates
       .filter(isVisibleElement)
@@ -197,10 +211,7 @@
   }
 
   function collectCandidates(candidateSelectors) {
-    if (!Array.isArray(candidateSelectors)) {
-      return [];
-    }
-
+    if (!Array.isArray(candidateSelectors)) return [];
     const found = [];
     for (const selector of candidateSelectors) {
       document.querySelectorAll(selector).forEach((node) => found.push(node));
@@ -219,21 +230,17 @@
 
   function isVisibleElement(element) {
     const rect = element.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) {
-      return false;
-    }
+    if (rect.width <= 0 || rect.height <= 0) return false;
     const style = window.getComputedStyle(element);
     return style.display !== "none" && style.visibility !== "hidden";
   }
 
   function applyComposerHighlight(composer) {
     composer.classList.add("spam-guard-composer");
-
     const badge = document.createElement("div");
     badge.className = "spam-guard-composer-badge";
     badge.textContent = "";
     composer.parentElement?.appendChild(badge);
-
     state.composerBadge = badge;
     state.composerHighlighter = composer;
   }
@@ -250,9 +257,7 @@
   }
 
   function updateComposerBadge(extraText) {
-    if (!state.composerBadge) {
-      return;
-    }
+    if (!state.composerBadge) return;
     const statusText = state.settings.autoScanEnabled ? "AUTO ON" : "AUTO OFF";
     state.composerBadge.textContent = extraText
       ? "Spam Guard " + statusText + " - " + extraText
@@ -264,9 +269,7 @@
 
   function onInput(event) {
     const target = event.target;
-    if (!state.composer || !target || target !== state.composer) {
-      return;
-    }
+    if (!state.composer || !target || target !== state.composer) return;
     state.lastDraft = getComposerText(state.composer);
 
     if (!state.settings.autoScanEnabled) {
@@ -281,9 +284,7 @@
   }
 
   function onKeyDown(event) {
-    if (!state.composer || event.target !== state.composer) {
-      return;
-    }
+    if (!state.composer || event.target !== state.composer) return;
     if (event.key === "Enter" && !event.shiftKey) {
       triggerDraftScan("send");
     }
@@ -291,26 +292,39 @@
 
   function onClick(event) {
     const target = event.target;
-    if (!(target instanceof Element)) {
+    if (!(target instanceof Element)) return;
+
+    if (target.closest(".spam-guard-scan-btn")) {
+      const btn = target.closest(".spam-guard-scan-btn");
+      const text = btn.dataset.scanText;
+      const direction = btn.dataset.direction;
+
+      btn.innerText = "Scanning...";
+      btn.classList.add("is-scanning");
+
+      enqueueScan({
+        chatKey: getChatKey(),
+        text: text,
+        direction: direction,
+        trigger: "manual",
+        timestamp: Date.now(),
+        username: getCurrentUsername(),
+      });
       return;
     }
 
     if (target.closest(".spam-guard-toggle")) {
       const input = state.panelEls.autoScanToggle;
-      if (input) {
-        setAutoScanEnabled(Boolean(input.checked));
-      }
+      if (input) setAutoScanEnabled(Boolean(input.checked));
       return;
     }
 
     if (target.closest(".spam-guard-collapse")) {
-      const next = !state.settings.panelCollapsed;
-      setPanelCollapsed(next);
+      setPanelCollapsed(!state.settings.panelCollapsed);
       return;
     }
     if (target.closest(".spam-guard-toggle-visibility")) {
-      const next = !state.settings.panelVisible;
-      setPanelVisible(next);
+      setPanelVisible(!state.settings.panelVisible);
       return;
     }
 
@@ -319,117 +333,19 @@
     }
   }
 
-  function onMouseOver(event) {
-    if (!state.settings.autoScanEnabled) {
-      return;
-    }
-
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-
-    const messageElement = findMessageElement(target);
-    if (!messageElement || isExtensionNode(messageElement)) {
-      return;
-    }
-
-    const previous = event.relatedTarget;
-    if (previous instanceof Node && messageElement.contains(previous)) {
-      return;
-    }
-
-    const text = normalizeMessageText(extractText(messageElement));
-    if (!text || countWords(text) <= state.settings.minWords) {
-      clearHoverTimer();
-      updateComposerBadge("hover > " + state.settings.minWords + " words");
-      return;
-    }
-
-    const direction = inferDirection(messageElement);
-    const fingerprint = hashString(getChatKey() + "|" + text);
-
-    if (
-      state.incomingSeen.has(fingerprint) ||
-      state.hoverFingerprint === fingerprint
-    ) {
-      return;
-    }
-
-    state.hoveredMessageEl = messageElement;
-    state.hoverFingerprint = fingerprint;
-    clearHoverTimer();
-    updateStatus("watching", "Hover 2s to scan message.");
-    updateComposerBadge("hover scanning");
-
-    state.hoverTimer = window.setTimeout(() => {
-      if (
-        !state.hoveredMessageEl ||
-        state.hoveredMessageEl !== messageElement
-      ) {
-        return;
-      }
-      state.incomingSeen.add(fingerprint);
-      enqueueScan({
-        chatKey: getChatKey(),
-        text,
-        direction,
-        trigger: "hover",
-        timestamp: Date.now(),
-        username: getCurrentUsername(),
-      });
-    }, HOVER_SCAN_DELAY_MS);
-  }
-
-  function onMouseOut(event) {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-
-    const messageElement = findMessageElement(target);
-    if (!messageElement) {
-      return;
-    }
-
-    const next = event.relatedTarget;
-    if (next instanceof Node && messageElement.contains(next)) {
-      return;
-    }
-
-    if (state.hoveredMessageEl === messageElement) {
-      clearHoverTimer();
-      state.hoveredMessageEl = null;
-      state.hoverFingerprint = "";
-      updateComposerBadge();
-    }
-  }
-
   function hookSendButton() {
     const sendButtons = collectCandidates(selectors.sendButtonCandidates);
     sendButtons.forEach((button) => {
-      if (!(button instanceof HTMLElement)) {
-        return;
-      }
-      if (button.dataset.spamGuardHooked === "true") {
-        return;
-      }
+      if (!(button instanceof HTMLElement)) return;
+      if (button.dataset.spamGuardHooked === "true") return;
       button.dataset.spamGuardHooked = "true";
-      button.addEventListener(
-        "click",
-        () => {
-          triggerDraftScan("send");
-        },
-        true,
-      );
+      button.addEventListener("click", () => triggerDraftScan("send"), true);
     });
   }
 
   function isLikelySendButton(node) {
     const button = node.closest("button");
-    if (!button) {
-      return false;
-    }
+    if (!button) return false;
     const hints = [
       button.getAttribute("aria-label"),
       button.getAttribute("title"),
@@ -442,12 +358,8 @@
   }
 
   function triggerDraftScan(trigger) {
-    if (!state.settings.autoScanEnabled) {
-      return;
-    }
-    if (!state.composer) {
-      return;
-    }
+    if (!state.settings.autoScanEnabled) return;
+    if (!state.composer) return;
     const text = normalizeMessageText(getComposerText(state.composer));
     enqueueScan({
       chatKey: getChatKey(),
@@ -464,98 +376,14 @@
     return raw.replace(/\s+/g, " ");
   }
 
-  function processIncomingNode(node) {
-    if (isExtensionNode(node)) {
-      return;
-    }
-    const candidates = extractMessageCandidates(node);
-    for (const candidate of candidates) {
-      const text = extractText(candidate);
-      if (!text) {
-        continue;
-      }
-      if (countWords(text) <= state.settings.minWords) {
-        continue;
-      }
-
-      const direction = inferDirection(candidate);
-      if (direction !== "incoming") {
-        continue;
-      }
-
-      const fingerprint = hashString(getChatKey() + "|" + text);
-      if (state.incomingSeen.has(fingerprint)) {
-        continue;
-      }
-      state.incomingSeen.add(fingerprint);
-
-      enqueueScan({
-        chatKey: getChatKey(),
-        text,
-        direction: "incoming",
-        trigger: "realtime",
-        timestamp: Date.now(),
-        username: getCurrentUsername(),
-      });
-    }
-  }
-
-  function findMessageElement(startNode) {
-    if (!(startNode instanceof HTMLElement)) {
-      return null;
-    }
-    if (!Array.isArray(selectors.messageCandidates)) {
-      return null;
-    }
-
-    for (const selector of selectors.messageCandidates) {
-      const found = startNode.closest(selector);
-      if (found instanceof HTMLElement) {
-        return found;
-      }
-    }
-    return null;
-  }
-
-  function extractMessageCandidates(node) {
-    const candidates = [];
-    if (
-      !isExtensionNode(node) &&
-      matchesAny(node, selectors.messageCandidates)
-    ) {
-      candidates.push(node);
-    }
-    if (Array.isArray(selectors.messageCandidates)) {
-      for (const selector of selectors.messageCandidates) {
-        node.querySelectorAll(selector).forEach((el) => {
-          if (el instanceof HTMLElement && !isExtensionNode(el)) {
-            candidates.push(el);
-          }
-        });
-      }
-    }
-    return Array.from(new Set(candidates));
-  }
-
-  function matchesAny(element, candidateSelectors) {
-    if (!Array.isArray(candidateSelectors)) {
-      return false;
-    }
-    return candidateSelectors.some((selector) => {
-      try {
-        return element.matches(selector);
-      } catch {
-        return false;
-      }
-    });
-  }
-
   function extractText(element) {
-    const text = (element.innerText || element.textContent || "").trim();
-    if (!text) {
-      return "";
-    }
-    return text.replace(/\s+/g, " ");
+    const clone = element.cloneNode(true);
+    // Remove extension injected nodes so text doesn't include "Click for scan"
+    clone
+      .querySelectorAll(".spam-guard-scan-container")
+      .forEach((el) => el.remove());
+    const text = (clone.innerText || clone.textContent || "").trim();
+    return text ? text.replace(/\s+/g, " ") : "";
   }
 
   function inferDirection(element) {
@@ -570,49 +398,39 @@
       .join(" ")
       .toLowerCase();
 
-    if (containsHint(metadata, selectors.outgoingHints)) {
-      return "outgoing";
-    }
-    if (containsHint(metadata, selectors.incomingHints)) {
-      return "incoming";
-    }
+    if (containsHint(metadata, selectors.outgoingHints)) return "outgoing";
+    if (containsHint(metadata, selectors.incomingHints)) return "incoming";
     return "incoming";
   }
 
   function containsHint(text, hints) {
-    if (!Array.isArray(hints)) {
-      return false;
-    }
+    if (!Array.isArray(hints)) return false;
     return hints.some((hint) => text.includes(String(hint).toLowerCase()));
   }
 
   function enqueueScan(candidate) {
-    // Normalize + deduplicate before queueing to avoid duplicate API requests.
     const normalizedText = normalizeMessageText(String(candidate.text || ""));
-    if (!normalizedText) {
+    if (
+      !normalizedText ||
+      countWords(normalizedText) <= state.settings.minWords
+    )
       return;
-    }
-    if (countWords(normalizedText) <= state.settings.minWords) {
-      return;
-    }
 
     const queueKey = buildQueueKey(candidate.chatKey, normalizedText);
     const now = Date.now();
     const cached = state.cache.get(queueKey);
+
     if (cached && now - cached.createdAt < CACHE_TTL_MS) {
       applyDecision({
         ...candidate,
         result: cached.data.result,
         confidence: cached.data.confidence,
       });
+      updateButtonScanned(normalizedText, cached.data.result);
       return;
     }
-    if (state.inFlightKeys.has(queueKey)) {
-      return;
-    }
-    if (state.queue.some((item) => item.queueKey === queueKey)) {
-      return;
-    }
+    if (state.inFlightKeys.has(queueKey)) return;
+    if (state.queue.some((item) => item.queueKey === queueKey)) return;
 
     state.queue.push({
       ...candidate,
@@ -627,12 +445,9 @@
   }
 
   function pumpQueue() {
-    // Process queue under MAX_CONCURRENCY to keep UI responsive.
     while (state.running < MAX_CONCURRENCY && state.queue.length > 0) {
       const candidate = state.queue.shift();
-      if (!candidate) {
-        return;
-      }
+      if (!candidate) return;
       state.running += 1;
       state.inFlightKeys.add(candidate.queueKey);
       scanCandidate(candidate)
@@ -645,29 +460,42 @@
     }
   }
 
+  function updateButtonScanned(text, result) {
+    const btns = document.querySelectorAll(".spam-guard-scan-btn");
+    btns.forEach((btn) => {
+      if (btn.dataset.scanText === text) {
+        const isSpam = String(result).toLowerCase() === "spam";
+        btn.innerText = isSpam ? "⚠ SPAM" : "✔ " + String(result).toUpperCase();
+        btn.classList.remove("is-scanning");
+        btn.classList.add(isSpam ? "is-scanned-spam" : "is-scanned");
+      }
+    });
+  }
+
   async function scanCandidate(candidate) {
-    // Execute network scan and map raw classifier output to user-facing advice.
     updateStatus("scanning", "Scanning " + candidate.direction + " message...");
     updateComposerBadge("scanning");
 
     try {
       const data = await scanWithRetry(candidate);
-      state.cache.set(candidate.queueKey, {
-        createdAt: Date.now(),
-        data,
-      });
+      state.cache.set(candidate.queueKey, { createdAt: Date.now(), data });
+
       applyDecision({
         ...candidate,
         result: data.result,
         confidence: Number(data.confidence) || 0,
       });
+
+      updateButtonScanned(candidate.text, data.result);
     } catch (error) {
-      const isNetworkError = isLikelyNetworkError(error);
-      if (isNetworkError) {
+      if (isLikelyNetworkError(error)) {
         updateStatus("offline", "Backend unavailable.");
       } else {
         updateStatus("error", "Scan failed.");
       }
+
+      updateButtonScanned(candidate.text, "Error");
+
       updatePanelContent({
         text: candidate.text,
         direction: candidate.direction,
@@ -709,14 +537,10 @@
         }),
         signal: controller.signal,
       });
-      if (!response.ok) {
-        throw new Error("Scan API error: " + response.status);
-      }
+      if (!response.ok) throw new Error("Scan API error: " + response.status);
       return await response.json();
     } catch (error) {
-      if (previousError) {
-        throw previousError;
-      }
+      if (previousError) throw previousError;
       throw error;
     } finally {
       window.clearTimeout(timer);
@@ -743,30 +567,24 @@
   function mapDecision(result, confidence) {
     const c = Number(confidence) || 0;
     const r = String(result || "").toLowerCase();
-
-    if (r === "spam" && c >= 0.8) {
+    if (r === "spam" && c >= 0.8)
       return {
         level: "risky",
         resultLabelOverride: "SPAM",
         text: "Risky: High-confidence spam. Ignore and avoid all links.",
       };
-    }
-    if (r === "spam" && c >= 0.6) {
+    if (r === "spam" && c >= 0.6)
       return {
         level: "caution",
         resultLabelOverride: "SPAM",
         text: "Caution: Likely spam. Verify source before clicking any link.",
       };
-    }
-
-    if (r === "needs_review" || (c > 0.4 && c < 0.6)) {
+    if (r === "needs_review" || (c > 0.4 && c < 0.6))
       return {
         level: "caution",
         resultLabelOverride: "REVIEW",
         text: "Uncertain: Score is borderline. Verify sender identity before acting.",
       };
-    }
-
     return {
       level: "safe",
       resultLabelOverride: "HAM",
@@ -775,14 +593,13 @@
   }
 
   function createPanel() {
-    // Build the persistent floating panel once and cache element references.
     const panel = document.createElement("aside");
     panel.id = "spam-guard-panel";
     panel.innerHTML = [
       '<div class="spam-guard-header">',
       '<div class="spam-guard-title-wrap">',
-      '<div class="spam-guard-kicker">Spam Guard</div>',
-      '<div class="spam-guard-title">Telegram Safety</div>',
+      '<div class="spam-guard-kicker">Spam Detection</div>',
+      '<div class="spam-guard-title">Telegram Scan</div>',
       "</div>",
       '<div class="spam-guard-header-actions" style="display:flex;gap:4px">',
       `<button class="spam-guard-toggle-visibility" type="button" aria-label="Toggle visibility" title="Show/Hide">
@@ -811,7 +628,7 @@
       "</div>",
       '<div class="spam-guard-footer">',
       '<div class="spam-guard-advice-level">SAFE</div>',
-      '<div class="spam-guard-advice-text">Waiting for enough words to scan.</div>',
+      '<div class="spam-guard-advice-text">Waiting to scan a message.</div>',
       "</div>",
     ].join("");
 
@@ -830,13 +647,9 @@
   }
 
   function syncPanelControls() {
-    if (!state.panel) {
-      return;
-    }
+    if (!state.panel) return;
     const toggle = state.panelEls.autoScanToggle;
-    if (toggle) {
-      toggle.checked = Boolean(state.settings.autoScanEnabled);
-    }
+    if (toggle) toggle.checked = Boolean(state.settings.autoScanEnabled);
     state.panel.classList.toggle(
       "is-collapsed",
       Boolean(state.settings.panelCollapsed),
@@ -849,62 +662,45 @@
   }
 
   function updatePanelContent(content) {
-    if (!state.panel) {
-      return;
-    }
+    if (!state.panel) return;
     const { message, result, confidence, direction, adviceLevel, adviceText } =
       state.panelEls;
 
-    if (message) {
-      message.textContent = truncate(content.text || "", 180);
-    }
+    if (message) message.textContent = truncate(content.text || "", 180);
     if (result) {
       result.textContent = content.resultLabel || "-";
       result.dataset.level = content.adviceLevel || "safe";
     }
-    if (confidence) {
-      confidence.textContent = content.confidenceLabel || "-";
-    }
-    if (direction) {
+    if (confidence) confidence.textContent = content.confidenceLabel || "-";
+    if (direction)
       direction.textContent =
         (content.direction || "unknown").toUpperCase() +
         " / " +
         String(content.trigger || "manual").toUpperCase();
-    }
     if (adviceLevel) {
       adviceLevel.textContent = String(
         content.adviceLevel || "safe",
       ).toUpperCase();
       adviceLevel.dataset.level = String(content.adviceLevel || "safe");
     }
-    if (adviceText) {
-      adviceText.textContent = content.adviceText || "";
-    }
+    if (adviceText) adviceText.textContent = content.adviceText || "";
   }
 
   function updateStatus(status, message) {
     state.status = status;
-    if (!state.panelEls.statusBadge) {
-      return;
-    }
+    if (!state.panelEls.statusBadge) return;
     state.panelEls.statusBadge.textContent = status.toUpperCase();
     state.panelEls.statusBadge.dataset.status = status;
     if (
       message &&
       state.panelEls.message &&
       !state.panelEls.message.textContent
-    ) {
+    )
       state.panelEls.message.textContent = message;
-    }
   }
 
   function setAutoScanEnabled(value) {
     state.settings.autoScanEnabled = Boolean(value);
-    if (!state.settings.autoScanEnabled) {
-      clearHoverTimer();
-      state.hoveredMessageEl = null;
-      state.hoverFingerprint = "";
-    }
     chrome.storage.local.set({
       [STORAGE_KEYS.autoScanEnabled]: state.settings.autoScanEnabled,
     });
@@ -922,12 +718,11 @@
     chrome.storage.local.set({
       [STORAGE_KEYS.panelCollapsed]: state.settings.panelCollapsed,
     });
-    if (state.panel) {
+    if (state.panel)
       state.panel.classList.toggle(
         "is-collapsed",
         state.settings.panelCollapsed,
       );
-    }
   }
 
   function setPanelVisible(value) {
@@ -935,9 +730,8 @@
     chrome.storage.local.set({
       [STORAGE_KEYS.panelVisible]: state.settings.panelVisible,
     });
-    if (state.panel) {
+    if (state.panel)
       state.panel.classList.toggle("is-hidden", !state.settings.panelVisible);
-    }
   }
 
   async function loadSettings() {
@@ -947,11 +741,9 @@
       [STORAGE_KEYS.panelCollapsed]: false,
       [STORAGE_KEYS.panelVisible]: true,
     };
-
-    const result = await new Promise((resolve) => {
-      chrome.storage.local.get(defaults, resolve);
-    });
-
+    const result = await new Promise((resolve) =>
+      chrome.storage.local.get(defaults, resolve),
+    );
     state.settings.autoScanEnabled = Boolean(
       result[STORAGE_KEYS.autoScanEnabled],
     );
@@ -968,39 +760,32 @@
   function getChatKey() {
     return getRouteKey();
   }
-
   function getRouteKey() {
     return location.pathname + location.search + location.hash;
   }
-
   function getCurrentUsername() {
-    const title = document.title || "";
-    const normalized = title.replace(/\s+-\s+Telegram$/i, "").trim();
-    return normalized || null;
+    return (
+      (document.title || "").replace(/\s+-\s+Telegram$/i, "").trim() || null
+    );
   }
 
   function countWords(text) {
     const cleaned = String(text || "").trim();
-    if (!cleaned) {
-      return 0;
-    }
+    if (!cleaned) return 0;
     return cleaned.split(/\s+/).filter(Boolean).length;
   }
 
   function formatConfidence(confidence) {
     const value = Number(confidence);
-    if (!Number.isFinite(value)) {
-      return "-";
-    }
+    if (!Number.isFinite(value)) return "-";
     return (value * 100).toFixed(1) + "%";
   }
 
   function truncate(value, maxLength) {
     const text = String(value || "");
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return text.slice(0, maxLength - 3) + "...";
+    return text.length <= maxLength
+      ? text
+      : text.slice(0, maxLength - 3) + "...";
   }
 
   function normalizeMessageText(value) {
@@ -1022,9 +807,7 @@
   }
 
   function sleep(ms) {
-    return new Promise((resolve) => {
-      window.setTimeout(resolve, ms);
-    });
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   function hashString(value) {
@@ -1037,268 +820,17 @@
     return String(hash);
   }
 
-  function clearHoverTimer() {
-    if (state.hoverTimer) {
-      window.clearTimeout(state.hoverTimer);
-      state.hoverTimer = null;
-    }
-  }
-
-  function injectStyles() {
-    // Inject scoped styles once; all extension UI is namespaced with spam-guard-*.
-    if (document.getElementById("spam-guard-style")) {
-      return;
-    }
-
-    const style = document.createElement("style");
-    style.id = "spam-guard-style";
-    style.textContent = `
-      #spam-guard-panel {
-        position: fixed;
-        right: 14px;
-        top: 84px;
-        z-index: 2147483647;
-        width: min(340px, calc(100vw - 28px));
-        border-radius: 14px;
-        background: rgba(9, 17, 35, 0.96);
-        color: #e5ecff;
-        border: 1px solid rgba(130, 160, 255, 0.22);
-        box-shadow: 0 18px 45px rgba(2, 6, 18, 0.5);
-        font-family: Segoe UI, Arial, sans-serif;
-        backdrop-filter: blur(8px);
-      }
-
-      #spam-guard-panel.is-collapsed .spam-guard-body,
-      #spam-guard-panel.is-collapsed .spam-guard-footer {
-        display: none;
-      }
-
-      .spam-guard-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 12px 8px;
-        border-bottom: 1px solid rgba(130, 160, 255, 0.16);
-      }
-
-      .spam-guard-kicker {
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(164, 189, 255, 0.84);
-        font-weight: 700;
-      }
-
-      .spam-guard-title {
-        margin-top: 2px;
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .spam-guard-collapse, .spam-guard-toggle-visibility {
-        width: 28px;
-        height: 28px;
-        border: none;
-        border-radius: 999px;
-        background: rgba(130, 160, 255, 0.18);
-        color: #e5ecff;
-        font-size: 16px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .spam-guard-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-      }
-
-      .spam-guard-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-      }
-
-      .spam-guard-toggle-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: rgba(229, 236, 255, 0.88);
-      }
-
-      .spam-guard-status-badge {
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        padding: 5px 8px;
-        border-radius: 999px;
-        background: rgba(130, 160, 255, 0.15);
-      }
-
-      .spam-guard-status-badge[data-status="offline"],
-      .spam-guard-status-badge[data-status="error"] {
-        background: rgba(255, 110, 144, 0.2);
-      }
-
-      .spam-guard-status-badge[data-status="done"] {
-        background: rgba(87, 219, 157, 0.22);
-      }
-
-      .spam-guard-body {
-        padding: 8px 12px 12px;
-      }
-
-      .spam-guard-message {
-        min-height: 56px;
-        font-size: 13px;
-        line-height: 1.5;
-        color: rgba(229, 236, 255, 0.9);
-      }
-
-      .spam-guard-meta {
-        margin-top: 10px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .spam-guard-pill {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        padding: 5px 8px;
-        border-radius: 999px;
-        background: rgba(130, 160, 255, 0.17);
-      }
-
-      .spam-guard-footer {
-        border-top: 1px solid rgba(130, 160, 255, 0.16);
-        padding: 10px 12px 12px;
-      }
-
-      .spam-guard-advice-level {
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        font-weight: 800;
-      }
-
-      .spam-guard-advice-level[data-level="safe"] { color: #66e6b1; }
-      .spam-guard-advice-level[data-level="caution"] { color: #ffd96a; }
-      .spam-guard-advice-level[data-level="risky"] { color: #ff8aa7; }
-      .spam-guard-advice-level[data-level="review"] { color: #ffd96a; }
-
-      .spam-guard-result[data-level="risky"] { background: rgba(255,100,130,0.2); color: #ff8aa7; }
-      .spam-guard-result[data-level="caution"] { background: rgba(255,200,60,0.18); color: #ffd96a; }
-      .spam-guard-result[data-level="safe"] { background: rgba(80,210,150,0.18); color: #66e6b1; }
-
-      .spam-guard-advice-text {
-        margin-top: 4px;
-        font-size: 12px;
-        line-height: 1.45;
-        color: rgba(229, 236, 255, 0.92);
-      }
-
-      .spam-guard-composer {
-        outline: 2px solid rgba(110, 152, 255, 0.68) !important;
-        outline-offset: 2px !important;
-        border-radius: 8px !important;
-      }
-
-      .spam-guard-composer-badge {
-        position: absolute;
-        transform: translateY(-128%);
-        right: 6px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        background: rgba(9, 17, 35, 0.95);
-        color: #e5ecff;
-        padding: 4px 8px;
-        border-radius: 999px;
-        border: 1px solid rgba(130, 160, 255, 0.25);
-        z-index: 2147483646;
-        white-space: nowrap;
-      }
-
-      .spam-guard-composer-badge[data-enabled="false"] {
-        border-color: rgba(255, 128, 155, 0.25);
-        color: rgba(255, 171, 189, 0.96);
-      }
-
-      @media (max-width: 960px) {
-        #spam-guard-panel {
-          right: 10px;
-          top: auto;
-          bottom: 10px;
-          width: min(95vw, 340px);
-        }
-      }
-      #spam-guard-panel.is-hidden {
-        width: auto !important;
-        min-width: 0 !important;
-        border-radius: 999px !important;
-        padding: 0 !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-      }
-      #spam-guard-panel.is-hidden .spam-guard-header {
-        padding: 0;
-        border: none;
-      }
-      #spam-guard-panel.is-hidden .spam-guard-title-wrap,
-      #spam-guard-panel.is-hidden .spam-guard-collapse,
-      #spam-guard-panel.is-hidden .spam-guard-controls,
-      #spam-guard-panel.is-hidden .spam-guard-body,
-      #spam-guard-panel.is-hidden .spam-guard-footer {
-        display: none !important;
-      }
-      #spam-guard-panel.is-hidden .spam-guard-toggle-visibility {
-        width: 48px;
-        height: 48px;
-        background: rgba(43, 68, 128, 0.96);
-        border: 1px solid rgba(130, 160, 255, 0.4);
-        box-shadow: 0 4px 12px rgba(2, 6, 18, 0.5);
-      }
-      #spam-guard-panel.is-hidden .spam-guard-toggle-visibility svg {
-        width: 24px !important;
-        height: 24px !important;
-      }
-      #spam-guard-panel:not(.is-hidden) .icon-eye {
-        display: none;
-      }
-      #spam-guard-panel:not(.is-hidden) .icon-eye-off {
-        display: block;
-      }
-      #spam-guard-panel.is-hidden .icon-eye {
-        display: block;
-      }
-      #spam-guard-panel.is-hidden .icon-eye-off {
-        display: none;
-      }    
-    `;
-    document.head.appendChild(style);
-  }
-
   function isExtensionNode(node) {
-    if (!(node instanceof HTMLElement)) {
-      return false;
-    }
-    if (node.id === "spam-guard-panel" || node.id === "spam-guard-style") {
+    if (!(node instanceof HTMLElement)) return false;
+    if (node.id === "spam-guard-panel" || node.id === "spam-guard-style")
       return true;
-    }
-    if (node.classList.contains("spam-guard-composer-badge")) {
+    if (node.classList.contains("spam-guard-composer-badge")) return true;
+    if (
+      node.classList.contains("spam-guard-scan-container") ||
+      node.classList.contains("spam-guard-scan-btn")
+    )
       return true;
-    }
-    if (node.closest("#spam-guard-panel")) {
-      return true;
-    }
+    if (node.closest("#spam-guard-panel")) return true;
     return false;
   }
 })();
