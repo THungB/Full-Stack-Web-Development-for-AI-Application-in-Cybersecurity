@@ -173,3 +173,5 @@ DATABASE_URL=sqlite:///backend/spam_detection.db
 
 - Nguyen Thanh Kien ([KindaRusty](https://github.com/KindaRusty))
 - Bui Tien Hung ([THungB](https://github.com/THungB))
+- Nguyen Huu Hieu ([huuhieu9925](https://github.com/huuhieu9925))
+- Truong Nam Hung ([NamHung276](https://github.com/NamHung276))
