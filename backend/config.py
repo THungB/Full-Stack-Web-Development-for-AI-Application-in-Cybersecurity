@@ -125,6 +125,12 @@ class Settings(BaseSettings):
         description="Cache TTL (time-to-live) in seconds for /stats endpoint.",
     )
     
+    # --- OCR Configuration ---
+    tesseract_cmd_path: str | None = Field(
+        default=None,
+        description="Path to the Tesseract OCR executable. Can be overridden in .env if not installed in PATH.",
+    )
+    
     # --- CORS Configuration ---
     cors_origins: list[str] = Field(
         default=[

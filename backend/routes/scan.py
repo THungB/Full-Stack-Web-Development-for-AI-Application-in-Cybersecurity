@@ -25,6 +25,11 @@ from services.ai_labeler import _format_warning_label, get_ai_label
 
 try:
     import pytesseract
+    import os
+    from config import settings
+    
+    if settings.tesseract_cmd_path and os.path.exists(settings.tesseract_cmd_path):
+        pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd_path
 except ImportError:  # pragma: no cover
     pytesseract = None
 

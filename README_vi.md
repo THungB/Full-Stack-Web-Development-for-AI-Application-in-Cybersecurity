@@ -4,12 +4,29 @@
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](#)
 [![Python](https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white)](#)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](#)
-[![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
+[![SQLite](https://img.shields.io/badge/SQLite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](#)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](#)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](#)
 
-> Nền tảng phát hiện tin nhắn rác toàn diện tích hợp máy quét OCR, bot Telegram, tiện ích mở rộng trình duyệt và bảng điều khiển phân tích.
+> **COS30049 — Bài tập lớn 3**  
+> Nền tảng phát hiện tin nhắn rác đa kênh, toàn diện, được hỗ trợ bởi quy trình Scikit-learn LinearSVC, tích hợp với bảng điều khiển React, backend FastAPI, máy quét OCR, bot Telegram, tiện ích mở rộng trình duyệt và lớp tăng cường AI thông qua OpenRouter (Gemini Flash Lite).
+
+---
+
+## Mục lục
+
+- [Tuyên bố miễn trừ trách nhiệm](#tuyên-bố-miễn-trừ-trách-nhiệm)
+- [Tính năng nổi bật](#tính-năng-nổi-bật)
+- [Cấu trúc dự án](#cấu-trúc-dự-án)
+- [Bắt đầu nhanh](#bắt-đầu-nhanh)
+- [Cấu hình Môi trường](#cấu-hình-môi-trường)
+- [Lưu ý Quan trọng](#lưu-ý-quan-trọng)
+- [Tài liệu & Hướng dẫn](#tài-liệu--hướng-dẫn)
+- [Thành viên nhóm](#thành-viên-nhóm)
+- [Lời cảm ơn](#lời-cảm-ơn)
 
 ---
 

@@ -3,6 +3,7 @@
 [English](README.md) | [Tiếng Việt](README_vi.md)
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](#)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](#)
 [![Python](https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white)](#)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](#)
@@ -14,6 +15,20 @@
 > A comprehensive, multi-channel spam detection platform powered by a Scikit-learn LinearSVC pipeline,
 > integrated with a React dashboard, FastAPI backend, OCR scanner, Telegram bot, browser extension,
 > and an AI-enrichment layer via OpenRouter (Gemini Flash Lite).
+
+---
+
+## Table of Contents
+
+- [Disclaimer](#disclaimer)
+- [Features](#features)
+- [Project Modules](#project-modules)
+- [Quick Start](#quick-start)
+- [Environment Configuration](#environment-configuration)
+- [Important Note](#important-note)
+- [Documentation & Resources](#documentation--resources)
+- [Team Members](#team-members)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
